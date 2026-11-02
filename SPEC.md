@@ -41,3 +41,15 @@
 모터 정의: 왼쪽 모터 = L298N OUT1/OUT2 (ENA, IN1, IN2), 오른쪽 모터 = OUT3/OUT4 (ENB, IN3, IN4).
 방향 규칙: IN1=1, IN2=0 이면 왼쪽 정방향, IN3=1, IN4=0 이면 오른쪽 정방향. 실제 배선에 따라 반대로 돌면 펌웨어 설정 매크로(MOTOR_L_INVERT, MOTOR_R_INVERT)로 맞춥니다.
 
+## 3. 주변장치 설정 기준값
+
+| 기능 | 설정 |
+|---|---|
+| Timer0 | Fast PWM 8bit, 분주 8, 7812.5 Hz, OC0A/OC0B 비반전 |
+| Timer1 | CTC, 분주 64, OCR1A = 249, 1 ms 틱 인터럽트 |
+| 제어 주기 | 5 ms (200 Hz) |
+| UART0 | 9600 bps, U2X0 = 1, UBRR0 = 207, 8N1 |
+| TWI | 400 kHz, TWBR = 12, 분주 1 |
+| ADC | AVcc 기준, 분주 128 |
+| MPU6050 | PWR_MGMT_1=0x01, SMPLRT_DIV=4, CONFIG=3, GYRO ±250 dps (131 LSB/dps), ACCEL ±2 g (16384 LSB/g) |
+
