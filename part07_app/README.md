@@ -213,3 +213,45 @@ AI 가 레이아웃만 주고 Java 를 주지 않았다면, 레이아웃이 Java
 
 `%1$s`, `%1$d` 는 Java 에서 `getString(R.string.tele_angle, "-1.25")` 처럼 값을 끼워 넣는 자리입니다. `$s` 는 문자열, `$d` 는 정수입니다.
 
+## 7-06 블루투스 권한과 페어링
+
+### 버전별 권한
+
+블루투스 권한은 Android 12(API 31)에서 크게 바뀌었습니다.
+
+| Android 버전 | 필요한 권한 | 허용 방식 |
+|---|---|---|
+| 11 이하 (API 30 이하) | `BLUETOOTH`, `BLUETOOTH_ADMIN` | 설치할 때 자동 허용 (일반 권한) |
+| 12 이상 (API 31 이상) | `BLUETOOTH_CONNECT` (페어링 목록, 연결) | 실행 중 사용자에게 묻는 런타임 권한, "근처 기기" 그룹 |
+| 12 이상 (API 31 이상) | `BLUETOOTH_SCAN` (주변 기기 검색) | 런타임 권한, `neverForLocation` 으로 위치 권한 없이 사용 |
+
+이 앱은 이미 페어링된 기기에만 연결하므로 꼭 필요한 것은 `BLUETOOTH_CONNECT` 입니다. 연결 직전에 기기 검색을 멈추는 `cancelDiscovery()` 가 `BLUETOOTH_SCAN` 을 요구하기 때문에 SCAN 도 함께 선언하고 요청합니다. 두 권한은 같은 "근처 기기" 그룹이라 사용자에게는 대화상자가 한 번만 뜹니다.
+
+매니페스트입니다.
+
+<!-- include: part07_app/app/src/main/AndroidManifest.xml -->
+
+- `android:maxSdkVersion="30"` 은 "API 30 까지만 이 권한을 요청한다"는 뜻입니다. API 31 이상에서는 새 권한만 씁니다.
+- `android:usesPermissionFlags="neverForLocation"` 은 검색 결과로 사용자 위치를 추정하지 않겠다는 약속입니다. 이 선언이 있어야 API 31 이상에서 위치 권한 없이 검색 권한을 쓸 수 있습니다. `tools:targetApi="s"` 는 이 속성이 API 31 부터 있다는 Android Studio 경고를 끕니다.
+- Activity 의 `android:exported="true"` 는 Android 12 부터 intent-filter 가 있는 Activity 에 반드시 적어야 합니다. 빠지면 설치 자체가 실패합니다.
+- 아이콘은 템플릿 아이콘 파일이 없어도 빌드되도록 Android 기본 블루투스 아이콘(`@android:drawable/stat_sys_data_bluetooth`)을 씁니다. 템플릿의 `@mipmap/ic_launcher` 로 바꿔도 됩니다.
+
+### 연결 흐름
+
+[연결] 버튼을 누르면 `MainActivity.startConnectFlow()` 가 다음 순서로 진행합니다.
+
+| 단계 | 확인 | 아니면 |
+|---|---|---|
+| 1 | 블루투스 하드웨어가 있는가 (`isSupported`) | Toast 후 종료 |
+| 2 | API 31 이상이면 `BLUETOOTH_CONNECT` 가 허용되었는가 | `RequestMultiplePermissions` 로 요청, 거부되면 Toast |
+| 3 | 블루투스가 켜져 있는가 | `ACTION_REQUEST_ENABLE` 로 켜기 요청 |
+| 4 | 페어링된 기기가 있는가 | "먼저 페어링하세요" 안내 다이얼로그 |
+| 5 | 목록 다이얼로그에서 기기 선택 | 취소 |
+| 6 | `BluetoothService.connect()` | 실패 시 Toast |
+
+권한 요청과 블루투스 켜기 요청은 `registerForActivityResult()` 로 등록한 런처를 씁니다. 예전 방식인 `onRequestPermissionsResult()`, `startActivityForResult()` 는 더 이상 권장되지 않습니다.
+
+### 페어링은 앱이 아니라 휴대폰 설정에서
+
+앱 안에서 검색하고 페어링까지 하도록 만들 수도 있지만 코드가 크게 늘어납니다. 이 과정은 휴대폰 설정, 블루투스 메뉴에서 HC-05 를 한 번 페어링(PIN 1234)해 두고, 앱은 페어링 목록에서 고르기만 합니다. 자세한 순서는 7-12 에 있습니다.
+
