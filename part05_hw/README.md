@@ -126,3 +126,27 @@ HC-05 와 GY-521 모듈은 제조사마다 핀 순서가 다를 수 있으니, �
 - 풋프린트: `Module:Arduino_UNO_R3_WithMountingHoles` 를 지정하면 Uno 헤더 패드와 고정홀 위치가 정확히 들어옵니다. 쉴드는 이 패드에 긴 핀 헤더(스태커블 헤더)를 납땜해 Uno 위에 꽂습니다.
 - 보드 외곽은 이 풋프린트의 외곽선(68.6 x 53.3 mm) 위에 Edge.Cuts 로 그립니다.
 
+## 5-06 부품 선정과 풋프린트 (BOM)
+
+손납땜이 쉬운 스루홀(THT) 부품으로 통일했습니다.
+
+| Ref | 값 | 수량 | KiCad 풋프린트 | 비고 |
+|---|---|---|---|---|
+| J1 | Arduino UNO R3 | 1 | Module:Arduino_UNO_R3_WithMountingHoles | 스태커블 헤더 (6, 8, 8, 10 핀) |
+| J2 | 1x06 소켓 | 1 | Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical | HC-05 |
+| J3 | 1x08 소켓 | 1 | Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical | GY-521 |
+| J4 | 1x07 핀헤더 | 1 | Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical | L298N 제어선 |
+| J5, J6 | 2P 단자대 | 2 | TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2_1x02_P5.00mm_Horizontal | 5 mm 피치 |
+| D1 | 1N5822 | 1 | Diode_THT:D_DO-201AD_P15.24mm_Horizontal | 3 A 쇼트키, 역전압 보호 |
+| D2 | LED 3 mm | 1 | LED_THT:LED_D3.0mm | 상태 LED |
+| R1 | 20 kΩ | 1 | Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal | 분압 상단 |
+| R2 | 10 kΩ | 1 | 위와 같음 | 분압 하단 |
+| R3 | 1 kΩ | 1 | 위와 같음 | HC-05 RXD 분압 |
+| R4 | 2 kΩ | 1 | 위와 같음 | HC-05 RXD 분압 |
+| R5 | 330 Ω | 1 | 위와 같음 | LED |
+| C1 | 470 uF 16 V | 1 | Capacitor_THT:CP_Radial_D8.0mm_P3.50mm | 벌크 |
+| C2, C3, C4, C5 | 100 nF | 4 | Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm | 디커플링, ADC 필터 |
+| SW1 | 택트 스위치 | 1 | Button_Switch_THT:SW_PUSH_6mm | 모터 허용 토글 |
+
+CSV: `part05_hw/BOM.csv`
+
