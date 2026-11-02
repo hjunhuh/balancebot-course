@@ -248,3 +248,75 @@ p + q as uint8 = 44
 2. `ok = (mv >= 6400) && (mv <= 8500);`
 3. `comparison of integer expressions of different signedness` 경고가 나옵니다. -1이 4294967295로 바뀌어 비교된다는 뜻입니다.
 
+## 2-04 비트 연산
+
+임베디드 C에서 가장 많이 쓰는 문법입니다. 레지스터의 각 비트가 기능 하나를 켜고 끄기 때문입니다.
+
+| 작업 | 식 | 예 (n = 2) |
+|---|---|---|
+| set (1로) | `reg \|= (1U << n)` | `0000_0000` 이 `0000_0100` |
+| clear (0으로) | `reg &= ~(1U << n)` | `1111_1111` 이 `1111_1011` |
+| toggle (반전) | `reg ^= (1U << n)` | `0000_0100` 이 `0000_0000` |
+| test (읽기) | `(reg >> n) & 1U` | 해당 비트가 1이면 1 |
+
+여러 비트로 된 필드를 바꿀 때는 "마스크로 지우고, 시프트한 새 값을 OR" 합니다 (읽기, 수정, 쓰기). 예제에서는 `DDRB`, `PORTB`, `PIND` 를 같은 이름의 전역 변수로 만들어 LED(PB2)와 모터 방향 핀, 풀업 버튼(PD3, 누르면 0)을 흉내 냅니다. Part 3에서는 이 코드가 거의 그대로 실제 레지스터에 쓰입니다.
+
+<!-- include: part02_c/04_bitwise.c -->
+
+실행 결과:
+
+```
+== 1. basic bit operators ==
+a                      0b1100_1010  (0xCA, 202)
+b                      0b0000_1111  (0x0F,  15)
+a & b  (AND)           0b0000_1010  (0x0A,  10)
+a | b  (OR)            0b1100_1111  (0xCF, 207)
+a ^ b  (XOR)           0b1100_0101  (0xC5, 197)
+~a     (NOT)           0b0011_0101  (0x35,  53)
+a << 2                 0b0010_1000  (0x28,  40)
+a >> 2                 0b0011_0010  (0x32,  50)
+
+== 2. set / clear / toggle / test ==
+SET_BIT(r,3)           0b0000_1000  (0x08,   8)
+SET_BIT(r,0)           0b0000_1001  (0x09,   9)
+TOGGLE_BIT(r,7)        0b1000_1001  (0x89, 137)
+CLEAR_BIT(r,3)         0b1000_0001  (0x81, 129)
+TEST_BIT(r,7) = 1, TEST_BIT(r,3) = 0
+
+== 3. mask: read-modify-write a field ==
+ctrl before            0b0011_1011  (0x3B,  59)
+ctrl after (mode=5)    0b1011_1011  (0xBB, 187)
+read mode = 5
+
+== 4. register-like usage (fake DDRB / PORTB) ==
+DDRB (PB0..PB2 out)    0b0000_0111  (0x07,   7)
+PORTB LED on           0b0000_0100  (0x04,   4)
+PORTB IN2=1, IN4=0     0b0000_0101  (0x05,   5)
+blink 0: LED=0
+blink 1: LED=1
+blink 2: LED=0
+button pressed? no
+button pressed? yes
+
+== 5. combine / split 16-bit with shifts ==
+hi=0xFC lo=0x18 -> 0xFC18 = -1000
+split back: hi=0xFC lo=0x18
+
+== 6. precedence trap ==
+status & 0x04 == 0x04   -> 0 (wrong)
+(status & 0x04) == 0x04 -> 1 (right)
+```
+
+자주 하는 실수:
+
+- `&&` 와 `&`, `||` 와 `|` 를 혼동하는 경우. `&&` 는 참과 거짓만, `&` 는 비트 단위로 계산합니다.
+- `reg = (1 << n);` 처럼 `=` 를 써서 다른 비트를 모두 지워 버리는 경우. 다른 비트를 지키려면 `|=`, `&=` 를 씁니다.
+- `1 << 31` 처럼 부호 있는 `int` 를 부호 비트까지 시프트하는 경우. `1U` 또는 `1UL` 을 씁니다. AVR에서는 `int` 가 16비트이므로 `1 << 15` 부터 문제가 됩니다.
+- `==` 가 `&` 보다 우선순위가 높다는 것을 잊는 경우 (예제 6번).
+
+연습 문제 힌트:
+
+1. `while (v) { count += v & 1U; v >>= 1; }` 또는 `v &= (v - 1)` 로 가장 낮은 1 비트를 하나씩 지우며 셉니다.
+2. `PORTB ^= (uint8_t)(BIT(PB0) | BIT(PB1));`
+3. 2의 거듭제곱은 1 비트가 하나뿐입니다 (`0b1000`). 1을 빼면 그 아래가 모두 1이 되어 (`0b0111`) AND 결과가 0이 됩니다.
+
