@@ -72,3 +72,9 @@ Program:   11534 bytes (35.2% Full)
 Data:        547 bytes (26.7% Full)
 ```
 
+## 8-03 설정 파일: config.h
+
+튜닝 상수와 조립 방향 부호를 한 파일에 모읍니다. 모터가 반대로 돌거나 각도 부호가 반대일 때 코드를 고치는 대신 이 파일의 매크로만 바꿉니다.
+
+<!-- include: part08_fw/src/config.h -->
+
