@@ -255,3 +255,33 @@ AI 가 레이아웃만 주고 Java 를 주지 않았다면, 레이아웃이 Java
 
 앱 안에서 검색하고 페어링까지 하도록 만들 수도 있지만 코드가 크게 늘어납니다. 이 과정은 휴대폰 설정, 블루투스 메뉴에서 HC-05 를 한 번 페어링(PIN 1234)해 두고, 앱은 페어링 목록에서 고르기만 합니다. 자세한 순서는 7-12 에 있습니다.
 
+## 7-07 BluetoothService (연결, 송신, 수신 스레드)
+
+<!-- include: part07_app/app/src/main/java/com/example/balancebot/BluetoothService.java -->
+
+### SPP UUID
+
+HC-05 는 블루투스 클래식의 SPP 를 지원합니다. SPP 의 표준 UUID 는 `00001101-0000-1000-8000-00805F9B34FB` 이고, `createRfcommSocketToServiceRecord(SPP_UUID)` 로 소켓을 만들면 HC-05 와 가상 시리얼 포트가 열립니다. 이후로는 `InputStream`, `OutputStream` 으로 UART 처럼 바이트를 주고받습니다.
+
+### 왜 스레드가 필요한가
+
+Android 는 메인(UI) 스레드에서 오래 걸리는 일을 하면 화면이 멈추고, 5초 이상이면 "응답 없음(ANR)" 창을 띄웁니다. 블루투스에는 오래 걸리는 호출이 두 가지 있습니다.
+
+| 호출 | 걸리는 시간 | 처리 위치 |
+|---|---|---|
+| `socket.connect()` | 성공하면 1~2초, 실패하면 약 12초 | 작업 스레드 `bt-worker` |
+| `inputStream.read()` | 데이터가 올 때까지 무한정 블록 | 같은 작업 스레드 (연결 후 수신 루프) |
+| `outputStream.write()` | 보통 짧지만 버퍼가 차면 블록 | 단일 스레드 Executor (송신 순서 보장) |
+
+반대로 화면 위젯은 메인 스레드에서만 만질 수 있습니다. 그래서 작업 스레드는 결과를 직접 화면에 쓰지 않고 `Handler(Looper.getMainLooper()).post(...)` 로 메인 스레드에 넘깁니다. `Listener` 의 세 메서드(`onStateChanged`, `onLineReceived`, `onError`)는 항상 메인 스레드에서 불리므로 MainActivity 는 바로 `setText()` 해도 안전합니다.
+
+### 수신: 바이트를 줄로 모으기
+
+블루투스는 한 프레임이 한 번에 오지 않습니다. `#A,-125,40,7600,3*..\n` 이 `#A,-12` 와 `5,40,7600,3*..\n` 처럼 쪼개져 오거나, 두 프레임이 한 번에 붙어서 오기도 합니다. 그래서 `Protocol.LineAssembler` 가 `\n` 이 나올 때까지 버퍼에 모았다가 한 줄씩 넘겨 줍니다. `\r` 은 SPEC 대로 무시하고, 48바이트를 넘는 줄은 버립니다. 완성된 줄은 `Protocol.tryParse()` 로 파싱하고, 체크섬이나 형식이 틀리면 `null` 이 되어 MainActivity 가 무시합니다.
+
+### 연결 끊김 처리
+
+HC-05 전원이 꺼지거나 거리가 멀어지면 `read()` 가 `IOException` 을 던지고 수신 루프가 끝납니다. 이때 "블루투스 연결이 끊어졌습니다" 오류와 `DISCONNECTED` 상태를 메인 스레드로 보냅니다. MainActivity 는 이를 받아 조이스틱 타이머를 멈추고, 모터 스위치를 끄고, 버튼을 비활성화합니다.
+
+사용자가 [끊기]를 누르면 `disconnect()` 가 소켓을 닫습니다. 소켓을 닫으면 블록되어 있던 `read()` 나 `connect()` 가 예외로 깨어나는데, 이때는 `worker` 필드가 이미 `null` 이라서 "내가 지금 작업 스레드가 아니구나" 를 알고 오류 메시지 없이 조용히 끝납니다. 닫기 작업도 송신 Executor 에 넣기 때문에 직전에 보낸 `$D,0,0` 이 먼저 전송된 뒤 소켓이 닫힙니다.
+
