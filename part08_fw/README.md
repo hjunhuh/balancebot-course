@@ -40,3 +40,35 @@ part08_fw/
 | DRV | 부품의 레지스터 맵, 변환식 | 제어 알고리즘 | 보드 위 단독 확인 (Part 9 TC-01~05) |
 | BSW | MCU 레지스터 | 어떤 부품이 붙었는지 | Part 3 실습과 동일 |
 
+## 8-02 Microchip Studio 프로젝트 만들기
+
+1. File > New > Project > **GCC C Executable Project**, 이름 `balancebot`, Device 는 **ATmega328P**.
+2. 자동 생성된 `main.c` 를 삭제합니다.
+3. Solution Explorer 에서 프로젝트 우클릭 > Add > New Folder 로 `bsw`, `drv`, `asw` 를 만들고, 각 폴더에 우클릭 > Add > Existing Item 으로 이 저장소 `part08_fw/src/` 의 같은 이름 폴더 파일을 모두 추가합니다. `config.h`, `main.c` 는 프로젝트 최상위에 추가합니다.
+4. 프로젝트 Properties > Toolchain > AVR/GNU C Compiler
+   - Symbols: `F_CPU=16000000UL` 추가
+   - Directories: `../bsw`, `../drv`, `../asw`, `..` 추가 (프로젝트 폴더 기준 상대경로)
+   - Optimization: `-Os`
+   - Miscellaneous: `-std=gnu99`
+5. AVR/GNU Linker > Libraries 에 `libm` 추가 (`atan2f` 사용).
+6. Build > Build Solution. Output 창에 Program 약 11.5 KB (35 %), Data 약 0.55 KB (27 %) 가 나오면 정상입니다.
+7. Tools > Device Programming > Tool **AVRISP mkII**, Device **ATmega328P**, Interface **ISP** > Apply > Read (서명 0x1E950F) > Memories 탭에서 `Debug/balancebot.hex` 를 Program.
+
+Makefile 로 빌드하려면 (리눅스, macOS, WSL):
+
+```
+cd part08_fw
+make          # build/balancebot.hex
+make test     # PC 단위 테스트 + 시뮬레이션
+make flash    # avrdude + AVRISP mkII
+```
+
+이 저장소에서 실제 빌드한 결과입니다.
+
+```
+AVR Memory Usage
+Device: atmega328p
+Program:   11534 bytes (35.2% Full)
+Data:        547 bytes (26.7% Full)
+```
+
