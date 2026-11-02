@@ -370,3 +370,63 @@ mode is not 1 (mode=0)
 2. `case 'V': printf(...); break;` 를 `default` 앞에 추가합니다.
 3. `return (iabs(angle) > 4500) ? 4 : 3;`
 
+## 2-06 반복문
+
+| 문법 | 쓰임 |
+|---|---|
+| `for (초기; 조건; 증감)` | 반복 횟수가 정해져 있을 때 |
+| `while (조건)` | 조건이 바뀔 때까지 |
+| `do { } while (조건);` | 최소 한 번은 실행해야 할 때 (상태 확인 후 재시도) |
+| `break` / `continue` | 반복 탈출 / 이번 반복만 건너뛰기 |
+| `for (;;)` | 무한 루프, 펌웨어 `main` 의 슈퍼 루프 |
+
+펌웨어의 `main` 은 초기화 뒤 `for (;;)` 안에서 "제어 주기가 됐는지 확인하고, 통신을 처리하는" 일을 끝없이 반복합니다. 이를 슈퍼 루프라고 부릅니다.
+
+<!-- include: part02_c/06_loops.c -->
+
+실행 결과:
+
+```
+== 1. for: fixed count ==
+0 1 2 3 4 
+
+== 2. while: until condition changes ==
+1000 halved 9 times -> 1
+
+== 3. do while: run at least once ==
+poll #1 ready=0
+poll #2 ready=0
+poll #3 ready=1
+
+== 4. break and continue ==
+skip index 1
+skip index 4
+stop at index 5
+sum = 49
+
+== 5. nested loop ==
+  1  2  3  4
+  2  4  6  8
+  3  6  9 12
+
+== 6. super loop (embedded main) ==
+tick 5: control step
+tick 10: control step
+
+== 7. infinite loop trap ==
+loop ran 256 times
+4 3 2 1 0 
+```
+
+자주 하는 실수:
+
+- `for (uint8_t i = 0; i < 256; i++)`: `uint8_t` 는 256이 될 수 없어 끝나지 않습니다.
+- `for (unsigned i = 4; i >= 0; i--)`: 부호 없는 값은 항상 0 이상이므로 끝나지 않습니다.
+- `for (...);` 처럼 끝에 세미콜론을 붙여 빈 반복을 만드는 경우.
+
+연습 문제 힌트:
+
+1. `if (i % 3 != 0 || i % 5 == 0) continue; sum += i;` 정답은 1368입니다.
+2. `do { digits++; n /= 10; } while (n != 0);` 를 쓰면 n = 0일 때도 1이 나옵니다.
+3. tick 15에서 두 작업이 겹칩니다 (3과 5의 공배수). 실제 펌웨어도 같은 틱에 여러 작업이 몰릴 수 있음을 고려해야 합니다.
+
