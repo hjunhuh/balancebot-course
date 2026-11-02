@@ -166,3 +166,14 @@ CSV: `part05_hw/BOM.csv`
 2. Inspect > Design Rules Checker 실행. 미배선(Unconnected) 0, 오류 0 이 될 때까지 고칩니다.
 3. 3D Viewer 에서 단자대 방향(전선 들어가는 쪽이 보드 바깥), 소켓 높이, 모듈끼리 겹침을 확인합니다.
 
+## 5-09 거버 생성과 발주
+
+1. File > Fabrication Outputs > Gerbers (.gbr)
+   - 레이어: F.Cu, B.Cu, F.Silkscreen, B.Silkscreen, F.Mask, B.Mask, Edge.Cuts
+   - 출력 폴더 `gerber/`
+2. 같은 창에서 Generate Drill Files: Excellon, 단위 mm, PTH 와 NPTH 를 한 파일로 합침 옵션 선택.
+3. `gerber/` 폴더를 zip 으로 압축합니다.
+4. PCB 제조사(예: JLCPCB, PCBWay, 국내 업체) 주문 페이지에 zip 을 올리면 미리보기가 나옵니다. 외곽, 드릴, 실크가 맞는지 확인합니다.
+5. 주문 옵션: 2 층, 두께 1.6 mm, 수량 5, 표면처리 HASL, 색상 자유. 보통 제작 2~5 일, 배송 1~2 주입니다.
+6. 발주 전 마지막 확인: 커넥터 핀 순서를 가지고 있는 실제 모듈과 한 번 더 대조합니다. PCB 에서 가장 흔한 실수입니다.
+
