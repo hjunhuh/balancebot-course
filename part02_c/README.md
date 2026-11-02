@@ -802,3 +802,61 @@ state=17 stored as 1
 2. `uint8_t` 는 `int` 로 승격된 뒤 시프트됩니다. 16비트 `int` 에서 `0xFC << 8` 은 부호 있는 범위(최대 32767)를 넘어 정의되지 않은 동작이 됩니다.
 3. AFS_SEL = 2를 bit4..3에 넣으면 `2 << 3 = 0x10` 입니다.
 
+## 2-14 enum과 상태 머신
+
+`enum` 은 이름 붙은 정수 상수의 묶음입니다. 값을 명시하면 SPEC 4장의 상태 번호와 그대로 맞출 수 있고, 마지막에 `ST_COUNT` 를 두면 상태 개수를 배열 크기로 쓸 수 있습니다.
+
+상태 머신은 "현재 상태" 변수 하나와, 매 주기 호출되는 `switch` 로 만듭니다. 각 상태는 자기 조건만 검사하고, 상태 변경은 한 함수(`change_state`)에서만 하도록 모아 로그와 진입 동작(entry action)을 처리합니다.
+
+```
+INIT -> CALIB -> WAIT_UPRIGHT -> BALANCE <-> FALLEN
+                       (어느 상태든 배터리 저전압이면 LOW_BATT)
+```
+
+<!-- include: part02_c/14_enum_state_machine.c -->
+
+실행 결과 (`sizeof(RobotState)` 는 PC gcc 기준이며, avr-gcc 기본 설정에서는 2입니다):
+
+```
+sizeof(RobotState) = 4, ST_COUNT = 7
+
+t= 0 angle= 3000 mv=8200 [INIT]
+        state INIT -> CALIB
+t= 1 angle= 3000 mv=8200 [CALIB]
+t= 2 angle= 3000 mv=8200 [CALIB]
+t= 3 angle= 3000 mv=8190 [CALIB]
+        gyro offset = 12
+        state CALIB -> WAIT_UPRIGHT
+t= 4 angle= 1200 mv=8190 [WAIT_UPRIGHT]
+t= 5 angle=  300 mv=8180 [WAIT_UPRIGHT]
+        state WAIT_UPRIGHT -> BALANCE
+        (entry) reset PID integral, enable motors
+t= 6 angle= -150 mv=8180 [BALANCE]
+t= 7 angle= 2000 mv=8170 [BALANCE]
+t= 8 angle= 5200 mv=8170 [BALANCE]
+        state BALANCE -> FALLEN
+        (entry) motors OFF
+t= 9 angle= 6000 mv=8160 [FALLEN]
+t=10 angle=  100 mv=8160 [FALLEN]
+        state FALLEN -> BALANCE
+        (entry) reset PID integral, enable motors
+t=11 angle=   50 mv=6300 [BALANCE]
+        state BALANCE -> LOW_BATT
+        (entry) motors OFF
+t=12 angle=   50 mv=6300 [LOW_BATT]
+
+final state = LOW_BATT (telemetry st=6)
+```
+
+자주 하는 실수:
+
+- 여러 곳에서 `state = ...` 를 직접 바꿔 흐름을 추적할 수 없게 되는 경우.
+- 진입 시 한 번만 할 일(모터 정지, 적분 초기화)을 매 주기 반복하는 경우.
+- `enum` 값과 이름 표의 순서가 어긋나는 경우. `ST_COUNT` 로 배열 크기를 고정하면 개수 차이를 컴파일러가 일부 잡아 줍니다.
+
+연습 문제 힌트:
+
+1. FALLEN에서 섰다는 조건이 거짓이면 별도 카운터를 0으로, 참이면 증가시키고 200 이상일 때 `change_state` 를 호출합니다.
+2. `if (!enable) change_state(r, ST_IDLE); else if (r->state == ST_IDLE) change_state(r, ST_WAIT_UPRIGHT);`
+3. `default` 가 있으면 `case ST_IDLE` 을 지워도 `default` 로 처리되므로 경고가 없습니다. `default` 까지 지우면 `-Wall` 에 포함된 `-Wswitch` 가 `enumeration value 'ST_IDLE' not handled in switch` 경고를 냅니다. 그래서 상태 머신에서는 일부러 `default` 없이 모든 `case` 를 나열해 빠진 상태를 컴파일러가 찾게 하는 방식도 많이 씁니다.
+
