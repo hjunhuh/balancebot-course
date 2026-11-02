@@ -1,0 +1,279 @@
+<title>BalanceBot 임베디드 올인원</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 데이터시트 같은 종이 면, 왼쪽 고정 파트 목록 + 가운데 본문 단일 칼럼. 포인트 색은 PCB 솔더마스크 녹색과 구리색 */
+:root {
+  --bg: #f5f7f3;
+  --panel: #ffffff;
+  --fg: #18221e;
+  --muted: #5b6a63;
+  --line: #d8e0d9;
+  --accent: #0d6a4e;
+  --accent-soft: #e2f0ea;
+  --copper: #a85a17;
+  --code-bg: #eef2ed;
+  --c-kw: #0d6a4e;
+  --c-str: #a85a17;
+  --c-com: #7a8a82;
+  --c-num: #6b3fa0;
+  --c-fn: #1f4f8f;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --side: 284px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1411; --panel: #131c18; --fg: #e2eae5; --muted: #91a399; --line: #24322c;
+    --accent: #52c79c; --accent-soft: #17302a; --copper: #e09a58; --code-bg: #0f1814;
+    --c-kw: #52c79c; --c-str: #e09a58; --c-com: #6f8379; --c-num: #c09bea; --c-fn: #8ab8f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1411; --panel: #131c18; --fg: #e2eae5; --muted: #91a399; --line: #24322c;
+  --accent: #52c79c; --accent-soft: #17302a; --copper: #e09a58; --code-bg: #0f1814;
+  --c-kw: #52c79c; --c-str: #e09a58; --c-com: #6f8379; --c-num: #c09bea; --c-fn: #8ab8f0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.75; margin: 0; word-break: keep-all; overflow-wrap: anywhere;
+}
+.shell { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); min-height: 100vh; }
+
+/* ---------- 사이드바 ---------- */
+.side {
+  position: sticky; top: env(safe-area-inset-top, 0px); align-self: start;
+  height: calc(100vh - env(safe-area-inset-top, 0px)); overflow-y: auto;
+  border-right: 1px solid var(--line); background: var(--panel);
+  padding-block: 28px 24px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.brand { display: flex; flex-direction: column; gap: 4px; }
+.brand .ref { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; color: var(--copper); text-transform: uppercase; }
+.brand .name { font-size: 20px; font-weight: 700; line-height: 1.3; text-wrap: balance; }
+.brand .sub { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.overall { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+nav.parts { display: flex; flex-direction: column; gap: 2px; }
+.nav-part {
+  display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 6px; color: var(--fg); text-decoration: none; font-size: 14px; line-height: 1.35;
+}
+.nav-part:hover { background: var(--accent-soft); }
+.nav-part.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav-part .num {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-align: center;
+  border: 1px solid currentColor; border-radius: 3px; padding: 1px 0; color: var(--muted);
+}
+.nav-part.on .num { color: var(--accent); }
+.nav-part .prog { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 400; }
+.nav-part .prog.full { color: var(--accent); }
+.side .note { font-size: 12px; color: var(--muted); line-height: 1.55; border-top: 1px solid var(--line); padding-top: 14px; margin-top: auto; }
+
+/* ---------- 본문 ---------- */
+main {
+  padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-width: 0;
+}
+.doc { max-width: 800px; margin: 0 auto; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; color: var(--copper); text-transform: uppercase; }
+.doc h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.25; margin: 6px 0 16px; text-wrap: balance; letter-spacing: -0.01em; }
+.part-prog { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+.part-prog .bar { flex: 1; max-width: 240px; }
+.toc {
+  list-style: none; padding: 16px 18px; margin: 0 0 36px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 20px;
+  font-size: 14px; line-height: 1.5;
+}
+.toc a { color: var(--fg); text-decoration: none; display: block; padding: 3px 0; }
+.toc a:hover { color: var(--accent); }
+.toc a.is-done { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.doc h2 {
+  font-size: 22px; line-height: 1.35; margin: 52px 0 14px; padding-top: 18px; border-top: 1px solid var(--line);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; scroll-margin-top: 16px;
+}
+.doc h2 .h2t { text-wrap: balance; min-width: 0; }
+.doc h3 { font-size: 17px; margin: 30px 0 8px; }
+.doc p, .doc li { max-width: 68ch; }
+.doc a { color: var(--accent); }
+.doc strong { font-weight: 700; }
+.doc ul, .doc ol { padding-left: 22px; }
+.doc ol.toc { padding-left: 18px; }
+.doc blockquote { margin: 16px 0; padding: 8px 16px; border-left: 3px solid var(--copper); color: var(--muted); }
+button.done {
+  flex: none; font: 500 12px/1 var(--font-body); color: var(--muted); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; margin-top: 3px;
+}
+button.done:hover { border-color: var(--accent); color: var(--accent); }
+button.done[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+
+/* 표 */
+.tbl { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.tbl table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.55; font-variant-numeric: tabular-nums; }
+.tbl th { text-align: left; font-weight: 700; background: var(--accent-soft); color: var(--fg); white-space: nowrap; }
+.tbl th, .tbl td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr:last-child td { border-bottom: 0; }
+
+/* 코드 */
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+pre { margin: 16px 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+pre code { word-break: normal; overflow-wrap: normal; display: block; padding: 14px 16px; background: none; font-size: 13px; line-height: 1.6; white-space: pre; }
+details.code { margin: 16px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--code-bg); overflow: hidden; }
+details.code > summary {
+  cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; align-items: center;
+  padding: 10px 14px; font-family: var(--font-mono); font-size: 12.5px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+details.code > summary::-webkit-details-marker { display: none; }
+details.code > summary::before { content: "+"; color: var(--accent); font-weight: 600; width: 1ch; }
+details.code[open] > summary::before { content: "-"; }
+details.code .path { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--fg); }
+details.code .lines { color: var(--muted); flex: none; }
+details.code pre { margin: 0; border: 0; border-radius: 0; max-height: 640px; overflow: auto; }
+.hljs-keyword, .hljs-meta, .hljs-built_in, .hljs-type, .hljs-literal { color: var(--c-kw); }
+.hljs-string, .hljs-attr, .hljs-meta .hljs-string { color: var(--c-str); }
+.hljs-comment { color: var(--c-com); font-style: italic; }
+.hljs-number { color: var(--c-num); }
+.hljs-title, .hljs-title.function_, .hljs-tag, .hljs-name { color: var(--c-fn); }
+
+figure { margin: 20px 0; }
+figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #ffffff; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.pager a {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; background: var(--panel); min-width: 0; flex: 1 1 220px;
+}
+.pager a:hover { border-color: var(--accent); }
+.pager a.next { text-align: right; }
+.pager small { font-family: var(--font-mono); font-size: 11px; color: var(--copper); letter-spacing: .1em; }
+
+/* ---------- 좁은 화면 ---------- */
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+  .side {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: auto; overflow: visible;
+    border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; align-items: center;
+    padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px;
+  }
+  .brand .sub, .brand .ref, .overall, .side .note { display: none; }
+  .brand .name { font-size: 15px; white-space: nowrap; }
+  nav.parts { flex-direction: row; overflow-x: auto; gap: 4px; min-width: 0; flex: 1; scrollbar-width: none; }
+  nav.parts::-webkit-scrollbar { display: none; }
+  .nav-part { grid-template-columns: auto; padding: 6px 4px; }
+  .nav-part .nm, .nav-part .prog { display: none; }
+  .nav-part .num { min-width: 34px; padding: 3px 6px; }
+  main { padding-block: 24px 64px; }
+  .doc h2 { font-size: 19px; flex-direction: column; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } html { scroll-behavior: auto; } }
+</style>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <span class="ref">Self-balancing robot / ATmega328P</span>
+      <span class="name">BalanceBot 임베디드 올인원</span>
+      <span class="sub">C, 레지스터 펌웨어, 회로와 PCB, 3D 기구, 안드로이드 앱, 통합 테스트, 포트폴리오</span>
+    </div>
+    <div class="overall"><span id="overall-label">전체 진행 0 / 0</span><div class="bar"><i id="overall-bar"></i></div></div>
+    <nav class="parts" aria-label="파트 목록">
+{{NAV}}
+    </nav>
+    <p class="note">코드, STL, CSV 전체는 함께 받은 zip 파일에 같은 폴더 구조로 들어 있습니다. 완료 표시는 이 브라우저에만 저장됩니다.</p>
+  </aside>
+  <main>
+    <article class="doc" id="doc" aria-live="polite"></article>
+  </main>
+</div>
+
+{{TEMPLATES}}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function () {
+  var ORDER = {{ORDER}};
+  var SECTIONS = {{SECTIONS}};
+  var KEY = "bb-done-v1";
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { done = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} }
+
+  var doc = document.getElementById("doc");
+
+  function count(key) {
+    var s = SECTIONS[key] || [], n = 0;
+    for (var i = 0; i < s.length; i++) if (done[s[i]]) n++;
+    return [n, s.length];
+  }
+  function refreshProgress(current) {
+    var all = 0, tot = 0;
+    ORDER.forEach(function (k) {
+      var c = count(k); all += c[0]; tot += c[1];
+      var el = document.querySelector('[data-prog="' + k + '"]');
+      if (el) { el.textContent = c[0] + "/" + c[1]; el.classList.toggle("full", c[1] > 0 && c[0] === c[1]); }
+    });
+    document.getElementById("overall-label").textContent = "전체 진행 " + all + " / " + tot;
+    document.getElementById("overall-bar").style.width = (tot ? (all * 100 / tot) : 0) + "%";
+    if (current) {
+      var c = count(current);
+      var lab = doc.querySelector(".part-prog span");
+      var bar = doc.querySelector(".part-prog i");
+      if (lab) lab.textContent = c[0] + " / " + c[1] + " 섹션 완료";
+      if (bar) bar.style.width = (c[1] ? c[0] * 100 / c[1] : 0) + "%";
+      doc.querySelectorAll(".toc a[data-jump]").forEach(function (a) { a.classList.toggle("is-done", !!done[a.getAttribute("data-jump")]); });
+    }
+  }
+
+  function render(key, jump) {
+    if (ORDER.indexOf(key) < 0) key = ORDER[0];
+    var t = document.getElementById("t-" + key);
+    var idx = ORDER.indexOf(key);
+    var num = key.indexOf("part-") === 0 ? "Part " + key.slice(5) : "Spec";
+    var prev = idx > 0 ? ORDER[idx - 1] : null, next = idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
+    function title(k) { return document.getElementById("t-" + k).getAttribute("data-title"); }
+    var head = '<div class="eyebrow">' + num + '</div><h1>' + t.getAttribute("data-title") + '</h1>' +
+      '<div class="part-prog"><div class="bar"><i></i></div><span></span></div>';
+    var pager = '<nav class="pager" aria-label="이전 다음">' +
+      (prev ? '<a href="#' + prev + '"><small>이전</small>' + title(prev) + '</a>' : '<span></span>') +
+      (next ? '<a class="next" href="#' + next + '"><small>다음</small>' + title(next) + '</a>' : '') + '</nav>';
+    doc.innerHTML = head + t.innerHTML + pager;
+    document.querySelectorAll(".nav-part").forEach(function (a) { a.classList.toggle("on", a.getAttribute("data-key") === key); });
+    doc.querySelectorAll("button.done").forEach(function (b) { b.setAttribute("aria-pressed", done[b.getAttribute("data-sec")] ? "true" : "false"); b.textContent = done[b.getAttribute("data-sec")] ? "완료" : "완료 표시"; });
+    if (window.hljs) doc.querySelectorAll("pre code").forEach(function (c) { try { hljs.highlightElement(c); } catch (e) {} });
+    refreshProgress(key);
+    if (jump) { var el = document.getElementById(jump); if (el) el.scrollIntoView(); }
+    else window.scrollTo(0, 0);
+    var on = document.querySelector(".nav-part.on");
+    if (on && on.scrollIntoView && window.innerWidth <= 900) on.scrollIntoView({ inline: "center", block: "nearest" });
+  }
+
+  doc.addEventListener("click", function (e) {
+    var b = e.target.closest("button.done");
+    if (b) {
+      var id = b.getAttribute("data-sec");
+      if (done[id]) delete done[id]; else done[id] = 1;
+      save();
+      b.setAttribute("aria-pressed", done[id] ? "true" : "false");
+      b.textContent = done[id] ? "완료" : "완료 표시";
+      refreshProgress(current());
+      return;
+    }
+    var j = e.target.closest("a[data-jump]");
+    if (j) { e.preventDefault(); var el = document.getElementById(j.getAttribute("data-jump")); if (el) el.scrollIntoView({ behavior: "smooth" }); }
+  });
+
+  function current() { var h = (location.hash || "").slice(1); return ORDER.indexOf(h) >= 0 ? h : ORDER[0]; }
+  window.addEventListener("hashchange", function () { render(current()); });
+  render(current());
+})();
+</script>
