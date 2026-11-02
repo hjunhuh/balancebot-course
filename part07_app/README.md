@@ -75,3 +75,56 @@
 
 연결 전에는 [끊기], 모터 스위치, PID 버튼 세 개가 비활성화됩니다. 연결되면 앱이 자동으로 `$G` 를 보내 로봇의 현재 파라미터를 받아 입력칸을 채웁니다.
 
+## 7-02 Android Studio 설치와 새 프로젝트 만들기
+
+### Android Studio 설치
+
+1. https://developer.android.com/studio 에서 Android Studio 를 내려받아 설치합니다. Windows 는 설치 마법사의 기본값 그대로 진행하면 됩니다.
+2. 처음 실행하면 Setup Wizard 가 나옵니다. Standard 를 고르면 Android SDK, SDK Platform-Tools, 에뮬레이터, 최신 Android SDK Platform 이 함께 설치됩니다.
+3. 설치 후 Welcome 화면의 More Actions, SDK Manager 에서 SDK Platforms 탭의 Android 14.0 (API 34) 이 설치되어 있는지 확인합니다. 없으면 체크하고 Apply 를 누릅니다.
+4. 같은 창의 SDK Tools 탭에서 Android SDK Build-Tools, Android SDK Platform-Tools 가 설치되어 있는지 확인합니다.
+
+블루투스는 에뮬레이터에서 동작하지 않으므로 이 파트의 테스트는 반드시 실제 휴대폰으로 합니다.
+
+### 새 프로젝트 만들기
+
+1. Welcome 화면에서 New Project 를 누릅니다.
+2. Phone and Tablet 탭에서 **Empty Views Activity** 를 고릅니다. (Empty Activity 는 Jetpack Compose 템플릿이므로 고르지 않습니다.)
+3. 다음 값을 입력합니다.
+
+| 항목 | 값 |
+|---|---|
+| Name | BalanceBot |
+| Package name | com.example.balancebot |
+| Save location | 원하는 폴더 |
+| Language | Java |
+| Minimum SDK | API 23 ("Marshmallow"; Android 6.0) |
+| Build configuration language | Groovy DSL (build.gradle) 권장, Kotlin DSL 이어도 아래 방법으로 그대로 됩니다 |
+
+4. Finish 를 누르고 Gradle Sync 가 끝날 때까지 기다립니다 (처음에는 몇 분 걸립니다). 이 상태에서 한 번 Run 해서 빈 화면 앱이 뜨는지 확인해 두면 이후 문제를 나누어 보기 좋습니다.
+
+Name 을 꼭 `BalanceBot` 으로 하세요. 템플릿이 만드는 테마 이름이 `Theme.BalanceBot` 이 되고, 이 폴더의 매니페스트도 같은 이름을 씁니다.
+
+### 이 폴더의 파일로 덮어쓰기
+
+Gradle 파일까지 통째로 덮어쓰면 Android Studio 버전에 따라 버전 카탈로그(libs.versions.toml)나 Kotlin DSL 과 섞여 동기화가 실패하기 쉽습니다. 가장 확실한 방법은 **Android Studio 가 만든 프로젝트와 Gradle 설정은 그대로 두고, 소스와 리소스만 교체**하는 것입니다. Empty Views Activity 템플릿에는 이미 appcompat 과 material 의존성이 들어 있으므로 Gradle 은 건드릴 필요가 없습니다.
+
+Android Studio 왼쪽 위 보기 방식을 Android 에서 **Project** 로 바꾸면 실제 폴더 구조가 보입니다. 아래 표대로 복사합니다 (`<프로젝트>` 는 새로 만든 BalanceBot 폴더).
+
+| 이 폴더의 파일 | 복사할 위치 | 방법 |
+|---|---|---|
+| `app/src/main/java/com/example/balancebot/MainActivity.java` | `<프로젝트>/app/src/main/java/com/example/balancebot/` | 덮어쓰기 |
+| `BluetoothService.java`, `JoystickView.java`, `Protocol.java` | 같은 폴더 | 새로 추가 |
+| `app/src/main/res/layout/activity_main.xml` | `<프로젝트>/app/src/main/res/layout/` | 덮어쓰기 |
+| `app/src/main/res/values/strings.xml` | `<프로젝트>/app/src/main/res/values/` | 덮어쓰기 |
+| `app/src/main/res/values/themes.xml` | `<프로젝트>/app/src/main/res/values/` | 덮어쓰기 |
+| `app/src/main/AndroidManifest.xml` | `<프로젝트>/app/src/main/` | 덮어쓰기 |
+
+복사한 다음 아래 정리를 합니다.
+
+1. `<프로젝트>/app/src/main/res/values-night/themes.xml` 을 삭제합니다. 템플릿의 다크 모드 테마이며, 우리 테마는 DayNight 라서 따로 필요 없습니다.
+2. 메뉴 Build, Clean Project 를 실행한 뒤 File, Sync Project with Gradle Files 를 누릅니다.
+3. 빨간 줄이 남아 있으면 7-13 의 체크리스트를 봅니다.
+
+이 폴더의 Gradle 파일(`build.gradle`, `app/build.gradle` 등)은 "이 앱에 필요한 설정이 무엇인가"를 보여 주는 참고본입니다. 템플릿 Gradle 의 `namespace`, `applicationId` 가 `com.example.balancebot` 이고, `minSdk` 23, `compileSdk` 34 이상이며, 의존성에 appcompat 과 material 이 있는지만 비교해서 확인하면 됩니다.
+
