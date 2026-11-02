@@ -92,3 +92,9 @@ PWM 에서 놓치기 쉬운 점: Fast PWM 은 OCR 이 0 이어도 매 주기 한
 
 <!-- include: part08_fw/src/bsw/bsw_pwm.c -->
 
+## 8-06 BSW: UART 링버퍼
+
+수신은 RX 완료 인터럽트가 버퍼에 쌓고, 송신은 버퍼에 넣은 뒤 UDRE 인터럽트가 내보냅니다. 9600 bps 에서 30 바이트 텔레메트리는 약 31 ms 걸리는데, 폴링 송신이라면 그동안 제어 루프가 6번 멈춥니다. 인터럽트 송신은 이 문제를 없앱니다.
+
+<!-- include: part08_fw/src/bsw/bsw_uart.c -->
+
