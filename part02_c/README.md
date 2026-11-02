@@ -69,3 +69,41 @@ make WERROR=1 # 경고를 오류로 취급해 경고 0개인지 확인
 
 이 문서의 실행 결과는 Ubuntu 24.04, gcc 13.3.0 (x86-64)에서 `make run` 으로 실제 실행한 출력입니다. `sizeof` 나 주소 차이처럼 플랫폼에 따라 달라지는 값은 해당 레슨에 따로 표시했습니다.
 
+## 2-01 Hello World와 컴파일 과정
+
+C 소스는 네 단계를 거쳐 실행 파일이 됩니다.
+
+| 단계 | gcc 옵션 | 결과물 | 하는 일 |
+|---|---|---|---|
+| 전처리 | `-E` | `.i` | `#include` 내용을 붙여 넣고, `#define` 을 치환하고, 주석을 지움 |
+| 컴파일 | `-S` | `.s` | C를 그 CPU의 어셈블리어로 번역, 문법 오류와 경고가 여기서 나옴 |
+| 어셈블 | `-c` | `.o` | 어셈블리를 기계어 오브젝트 파일로 |
+| 링크 | (없음) | 실행 파일 | 여러 `.o` 와 라이브러리를 합쳐 `printf` 같은 함수 주소를 채움 |
+
+`gcc -save-temps 01_hello.c` 로 빌드하면 중간 파일이 모두 남습니다. AVR에서는 같은 과정을 `avr-gcc -mmcu=atmega328p` 로 진행하고, 마지막에 `.elf` 를 `.hex` 로 바꿔 AVRISP mkII로 기록합니다. PC용 실행 파일과 AVR용 hex 파일은 CPU가 달라 서로 호환되지 않습니다 (크로스 컴파일).
+
+운영체제가 없는 AVR에서 `main` 은 끝나면 돌아갈 곳이 없으므로 항상 무한 루프로 끝납니다.
+
+<!-- include: part02_c/01_hello.c -->
+
+실행 결과:
+
+```
+Hello, Embedded World!
+This course has 10 parts. Now: Part 2 (C basics)
+Build stages: preprocess(.i) -> compile(.s) -> assemble(.o) -> link(exe)
+__STDC_VERSION__ = 199901
+```
+
+자주 하는 실수:
+
+- 파일을 `.cpp` 로 저장해 C++로 컴파일되는 경우
+- `#include <stdio.h>` 를 빠뜨려 `implicit declaration of function 'printf'` 경고가 나는 경우
+- "undefined reference" (링크 오류)를 문법 오류로 착각하는 경우. 이 오류는 선언은 있지만 정의(구현)를 찾지 못했다는 뜻입니다.
+
+연습 문제 힌트:
+
+1. `.i` 파일은 `stdio.h` 와 그 안에서 다시 포함한 헤더들이 모두 펼쳐져 수백 줄이 됩니다 (`wc -l 01_hello.i`).
+2. `prinft` 는 컴파일 단계에서 "implicit declaration" 경고, 링크 단계에서 "undefined reference to prinft" 오류가 납니다. 두 단계가 다르다는 것이 핵심입니다.
+3. `printf("%s %d-%d-%d\n", "홍길동", 2026, 11, 2);` 처럼 변환 지정자 개수와 인자 개수를 맞춥니다.
+
