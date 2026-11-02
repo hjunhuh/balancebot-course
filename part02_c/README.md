@@ -743,3 +743,62 @@ struct Packed: sizeof=8 offsets b=0 a=4 c=5
 2. 큰 멤버를 앞에 둡니다: `uint32_t b; uint8_t a; uint8_t c;` 는 4 + 1 + 1 = 6에 정렬 패딩 2를 더해 8입니다.
 3. `if (s->integral > 100000) s->integral = 100000;` 처럼 누적 직후 양쪽을 제한합니다.
 
+## 2-13 공용체, 엔디언, 비트필드
+
+공용체(`union`)는 모든 멤버가 같은 메모리를 공유합니다. `uint16_t` 로 쓰고 `uint8_t[2]` 로 읽으면 엔디언(바이트 순서)을 직접 볼 수 있습니다. x86과 AVR은 모두 리틀엔디언(낮은 주소에 하위 바이트)입니다.
+
+MPU6050은 상위 바이트를 먼저 보내는 빅엔디언입니다. 두 바이트는 공용체가 아니라 시프트와 OR로 합칩니다. 이렇게 하면 CPU 엔디언과 무관하게 항상 같은 결과가 나옵니다.
+
+```
+int16_t v = (int16_t)(((uint16_t)hi << 8) | lo);   // 0xFC, 0x18 -> -1000
+```
+
+비트필드는 구조체 멤버를 비트 단위로 나눕니다. 비트 배치 순서는 C 표준이 정하지 않으므로, 실제 레지스터 접근은 마스크와 시프트로 하고 비트필드는 개념 모델이나 내부 플래그 저장에 씁니다.
+
+<!-- include: part02_c/13_union_bitfield.c -->
+
+실행 결과:
+
+```
+== 1. union shares memory ==
+sizeof(Split16)=2 sizeof(Split32)=4
+0x1234 bytes:    [0]=0x34 [1]=0x12
+this PC is LITTLE endian
+0xDEADBEEF:      [0]=0xEF [1]=0xBE [2]=0xAD [3]=0xDE
+
+== 2. build 16-bit from bytes via union ==
+bytes {0x18,0xFC} as word = 0xFC18 (-1000)
+
+== 3. MPU6050 big endian burst read ==
+AX   H=0x00 L=0x78 ->    120
+AY   H=0xFF L=0xD8 ->    -40
+AZ   H=0x3F L=0xAC ->  16300
+TEMP H=0xFB L=0x50 ->  -1200
+GX   H=0x00 L=0x55 ->     85
+GY   H=0xFF L=0xF4 ->    -12
+GZ   H=0x00 L=0x1E ->     30
+temperature = 33.01 C
+
+== 4. bit-field register model ==
+FS_SEL=0 -> reg=0x00
+FS_SEL=3 -> reg=0x18
+XG_ST=1  -> reg=0x98
+mask way -> reg=0x98
+
+== 5. bit-field flags ==
+sizeof(RobotFlags)=1 motor=1 low=0 imu=1 bt=0 state=3
+state=17 stored as 1
+```
+
+자주 하는 실수:
+
+- 캐스트 없이 `(hi << 8) | lo` 로 합치는 경우. AVR(16비트 `int`)에서 `hi << 8` 이 부호 있는 `int` 범위를 넘을 수 있습니다.
+- `int16_t` 로 바꾸지 않고 `uint16_t` 결과를 그대로 써서 음수가 65000대의 큰 양수로 나오는 경우.
+- 상위, 하위 바이트 순서를 반대로 조합하는 경우.
+
+연습 문제 힌트:
+
+1. `p[0] = (uint8_t)((uint16_t)v >> 8); p[1] = (uint8_t)((uint16_t)v & 0xFF);`
+2. `uint8_t` 는 `int` 로 승격된 뒤 시프트됩니다. 16비트 `int` 에서 `0xFC << 8` 은 부호 있는 범위(최대 32767)를 넘어 정의되지 않은 동작이 됩니다.
+3. AFS_SEL = 2를 bit4..3에 넣으면 `2 << 3 = 0x10` 입니다.
+
