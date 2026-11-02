@@ -78,3 +78,9 @@ Data:        547 bytes (26.7% Full)
 
 <!-- include: part08_fw/src/config.h -->
 
+## 8-04 BSW: 시스템 틱 (Timer1)
+
+Part 3 의 lab05 와 같습니다. 32비트 변수를 8비트 CPU 가 네 번에 나눠 읽는 동안 인터럽트가 값을 바꾸면 엉뚱한 값이 나오므로 `ATOMIC_BLOCK` 으로 보호합니다.
+
+<!-- include: part08_fw/src/bsw/bsw_tick.c -->
+
