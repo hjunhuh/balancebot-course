@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    밸런싱 로봇 조종 화면입니다.
+    ScrollView 안에 세로 LinearLayout 하나를 두고, 구역마다 제목 TextView 와 가로 LinearLayout 을 쌓습니다.
+    Java 에서 찾는 id 는 모두 @+id 로 선언되어 있습니다.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 앱 제목 (NoActionBar 테마라서 직접 표시합니다) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textAppearance="?attr/textAppearanceHeadline6" />
+
+        <!-- 1. 연결 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_connection" />
+
+        <TextView
+            android:id="@+id/tvConnState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/state_disconnected" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnConnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="@string/btn_connect" />
+
+            <Button
+                android:id="@+id/btnDisconnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/btn_disconnect" />
+        </LinearLayout>
+
+        <!-- 2. 모터 허용 -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchMotor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/motor_enable" />
+
+        <!-- 3. 텔레메트리 (2행 2열) -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_telemetry" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvAngle"
+                style="@style/TeleValue"
+                android:text="@string/none" />
+
+            <TextView
+                android:id="@+id/tvOutput"
+                style="@style/TeleValue"
+                android:text="@string/none" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvBattery"
+                style="@style/TeleValue"
+                android:text="@string/none" />
+
+            <TextView
+                android:id="@+id/tvState"
+                style="@style/TeleValue"
+                android:text="@string/none" />
+        </LinearLayout>
+
+        <!-- 4. 조이스틱 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_joystick" />
+
+        <com.example.balancebot.JoystickView
+            android:id="@+id/joystick"
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:layout_gravity="center_horizontal" />
+
+        <TextView
+            android:id="@+id/tvJoyValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/joy_value_zero" />
+
+        <!-- 5. PID 튜닝 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_pid" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/ParamLabel"
+                android:text="@string/label_kp" />
+
+            <EditText
+                android:id="@+id/etKp"
+                style="@style/ParamInput"
+                android:hint="@string/hint_kp"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/ParamLabel"
+                android:text="@string/label_ki" />
+
+            <EditText
+                android:id="@+id/etKi"
+                style="@style/ParamInput"
+                android:hint="@string/hint_ki"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/ParamLabel"
+                android:text="@string/label_kd" />
+
+            <EditText
+                android:id="@+id/etKd"
+                style="@style/ParamInput"
+                android:hint="@string/hint_kd"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/ParamLabel"
+                android:text="@string/label_trim" />
+
+            <!-- Trim 은 음수가 가능하므로 numberSigned 를 함께 씁니다 -->
+            <EditText
+                android:id="@+id/etTrim"
+                style="@style/ParamInput"
+                android:hint="@string/hint_trim"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal|numberSigned" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/ParamLabel"
+                android:text="@string/label_ks" />
+
+            <EditText
+                android:id="@+id/etKs"
+                style="@style/ParamInput"
+                android:hint="@string/hint_ks"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnSendParams"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/btn_send" />
+
+            <Button
+                android:id="@+id/btnReadParams"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/btn_read" />
+
+            <Button
+                android:id="@+id/btnSaveParams"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/btn_save" />
+        </LinearLayout>
+
+        <!-- 6. 수신 확인 (디버그용) -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_rx" />
+
+        <TextView
+            android:id="@+id/tvLastRx"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="@string/none" />
+
+        <TextView
+            android:id="@+id/tvRxStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/none" />
+
+    </LinearLayout>
+</ScrollView>
