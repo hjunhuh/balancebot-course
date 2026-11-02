@@ -1,0 +1,31 @@
+# Microchip Studio / avr-gcc
+Debug/
+Release/
+build/
+*.o
+*.elf
+*.map
+*.lss
+*.eep
+.vs/
+*.atsuo
+# PC 테스트 바이너리
+part02_c/**/*.exe
+part08_fw/test/test_protocol
+part08_fw/test/test_params
+part08_fw/test/test_pid_kalman
+part08_fw/test/sim_balance
+# Android
+.gradle/
+.idea/
+local.properties
+part07_app/**/build/
+*.apk
+# KiCad
+*-backups/
+*.kicad_prl
+fp-info-cache
+_autosave-*
+# OS
+.DS_Store
+Thumbs.db
