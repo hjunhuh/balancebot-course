@@ -196,3 +196,70 @@ HC-05 --UART--> proto_rx_feed --msg--> cmd_handle --joy, params-+             v
 | motor | `motor_set(l, r)` | -255..255 | 방향핀, PWM | 5 ms |
 | mpu6050 | `mpu6050_read(raw)` | | 7개 int16, 성공 여부 | 5 ms |
 
+## 4-10 형상 관리: Git, GitLab, Fork
+
+### 도구
+
+- **Git**: 버전 관리 프로그램
+- **GitLab** (또는 GitHub): 원격 저장소, 이슈, Merge Request(MR), CI
+- **Fork (Git GUI 클라이언트)**: 커밋 그래프를 보면서 스테이징, 커밋, 브랜치, 머지를 클릭으로 하는 프로그램. 명령어가 익숙하지 않을 때 좋습니다.
+
+### 실습 1: 저장소 만들기
+
+```
+git init balancebot
+cd balancebot
+# 이 과정의 폴더 구조를 복사
+git add .
+git commit -m "chore: 프로젝트 구조와 공통 사양서 추가"
+git remote add origin https://gitlab.com/<내아이디>/balancebot.git
+git push -u origin main
+```
+
+저장소 루트의 `.gitignore` 는 빌드 산출물(Microchip Studio `Debug/`, Android `build/`, KiCad 백업)을 제외합니다.
+
+### 실습 2: 팀 작업 흐름 (Fork 와 Merge Request)
+
+GitLab 의 "Fork" 는 남의 저장소를 내 계정으로 복사하는 기능입니다. 회사에서는 보통 같은 저장소 안에서 브랜치를 쓰고, 오픈소스나 외부 협력사는 Fork 를 씁니다. 둘 다 연습합니다.
+
+1. GitLab 에서 원본 저장소 > Fork > 내 네임스페이스 선택
+2. 내 Fork 를 clone, 기능 브랜치 생성: `git switch -c feature/kalman-tuning`
+3. 작업, 커밋 (작게, 자주, 하나의 목적만)
+4. `git push -u origin feature/kalman-tuning`
+5. GitLab 에서 Merge Request 생성: 원본 저장소의 `main` 으로
+6. 리뷰어 코멘트 반영 후 추가 커밋, 승인되면 Merge
+7. 원본의 새 변경을 내 Fork 로 가져오기: `git remote add upstream <원본 URL>`, `git fetch upstream`, `git merge upstream/main`
+
+### 커밋 메시지 규칙
+
+```
+<type>: <무엇을 왜 바꿨는지 한 줄>
+
+본문 (선택): 배경, 측정 결과, 관련 요구사항 ID
+```
+
+| type | 쓰임 | 예 |
+|---|---|---|
+| feat | 기능 추가 | `feat: $V 명령으로 속도 보상 게인 설정 (SWR-05)` |
+| fix | 버그 수정 | `fix: PWM 0 일 때 1클럭 펄스가 나가던 문제 수정` |
+| refactor | 동작 같고 구조 개선 | `refactor: I2C 대기 루프를 wait_twint 로 통합` |
+| test | 테스트 | `test: 칼만 가짜 평형 테스트 추가` |
+| docs | 문서 | `docs: HSI 에 L298N 점퍼 주의사항 추가` |
+| chore | 빌드, 설정 | `chore: .gitignore 에 KiCad 백업 추가` |
+
+### 브랜치와 태그
+
+- `main`: 항상 빌드되고 테스트가 통과하는 상태
+- `feature/*`, `fix/*`: 작업 브랜치, MR 로만 main 에 합침
+- 시연 가능한 버전마다 태그: `git tag -a v1.0 -m "첫 밸런싱 성공"`
+
+### MR 체크리스트 (설명란에 붙여 넣기)
+
+```
+- [ ] 관련 요구사항 ID:
+- [ ] avr-gcc 빌드 경고 0
+- [ ] make test 통과
+- [ ] 보드 확인한 TC 번호:
+- [ ] config.h 기본값 변경 여부와 이유:
+```
+
