@@ -107,3 +107,71 @@ __STDC_VERSION__ = 199901
 2. `prinft` 는 컴파일 단계에서 "implicit declaration" 경고, 링크 단계에서 "undefined reference to prinft" 오류가 납니다. 두 단계가 다르다는 것이 핵심입니다.
 3. `printf("%s %d-%d-%d\n", "홍길동", 2026, 11, 2);` 처럼 변환 지정자 개수와 인자 개수를 맞춥니다.
 
+## 2-02 자료형과 고정폭 정수
+
+`int` 의 크기는 정해져 있지 않습니다. PC gcc에서는 4바이트, avr-gcc에서는 2바이트입니다. 그래서 크기가 의미 있는 값에는 `stdint.h` 의 고정폭 정수를 씁니다.
+
+| 자료형 | 범위 | 로봇에서의 예 |
+|---|---|---|
+| `uint8_t` | 0..255 | 레지스터 값, UART 바이트 |
+| `int16_t` | -32768..32767 | MPU6050 원시값 |
+| `uint16_t` | 0..65535 | ADC 결과, 배터리 mV |
+| `int32_t` | 약 ±21억 | 곱셈 중간값, PID 적분 |
+| `uint32_t` | 0..약 42억 | 밀리초 카운터 |
+
+부호 없는 정수는 최댓값 다음에 0으로 돌아옵니다 (`uint8_t 255 + 1 = 0`). 작은 자료형으로 바꾸면 상위 비트가 잘립니다 (`(uint8_t)300 = 44`). AVR에는 부동소수점 하드웨어가 없으므로 블루투스 프로토콜처럼 "실수는 100배 정수" 로 다룹니다.
+
+<!-- include: part02_c/02_types.c -->
+
+실행 결과 (sizeof 값은 PC 기준이며, AVR에서는 int 2, long 4, double 4입니다):
+
+```
+== 1. sizeof (bytes on this PC) ==
+char      : 1
+short     : 2
+int       : 4
+long      : 8
+float     : 4
+double    : 8
+uint8_t   : 1
+int16_t   : 2
+uint32_t  : 4
+
+== 2. unsigned wrap around ==
+250 251 252 253 254 255 0 1 
+uint8_t 0 - 1 = 255
+
+== 3. truncation when storing into a smaller type ==
+(uint8_t)300 = 44
+(int16_t)40000 = -25536
+
+== 4. 16-bit int trap (AVR style) ==
+int16 result : -31072
+int32 result : 100000
+
+== 5. integer vs floating division ==
+7 / 2         = 3
+7 % 2         = 1
+7 / 2.0       = 3.50
+(float)7 / 2  = 3.50
+
+== 6. fixed point instead of float ==
+angle_x100 = -1234 -> -12.34 deg
+
+== 7. printf formats for fixed width ==
+millis = 4000000000
+0xAB 0x1234
+```
+
+자주 하는 실수:
+
+- `int16_t` 끼리 곱한 결과가 16비트를 넘는데 그대로 16비트 변수에 담는 경우. 곱하기 전에 `(int32_t)` 로 한쪽을 넓힙니다.
+- `7 / 2` 가 3.5라고 기대하는 경우. 정수끼리의 나눗셈은 소수점을 버립니다.
+- `uint32_t` 를 `%d` 로 출력하는 경우. `inttypes.h` 의 `PRIu32` 를 쓰거나 `(unsigned long)` 으로 바꿔 `%lu` 로 출력합니다.
+
+연습 문제 힌트:
+
+1. 127 + 1 = 128은 `int8_t` 범위를 넘으므로 2의 보수로 잘려 -128이 됩니다.
+2. `adc * 5000` 은 최대 5,115,000이라 `uint16_t` 에 들어가지 않습니다. `(uint32_t)adc * 5000 / 1023` 처럼 넓혀서 계산합니다.
+3. 부호를 먼저 따로 출력합니다. 예: `if (v < 0) { putchar('-'); v = -v; }` 다음에 `v / 100`, `v % 100` 을 출력합니다.
+
