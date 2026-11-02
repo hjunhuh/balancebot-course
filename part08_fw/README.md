@@ -162,3 +162,19 @@ u = Kp e + Ki ∫e dt + Kd (dθ/dt),   e = θ - θ_target
 
 <!-- include: part08_fw/src/asw/pid.c -->
 
+## 8-13 상태 머신과 제어 법칙
+
+```
+INIT -> CALIB -> WAIT_UPRIGHT -> BALANCE <-> FALLEN
+                       ^             |
+                       +---- IDLE <--+  (모터 허용 끔)
+              어느 상태든 -> LOW_BATT (배터리 6.6 V 미만 2 s)
+```
+
+- CALIB: 전원을 켜고 1 초 동안 가만히 두면 자이로 바이어스를 평균으로 구합니다. 흔들리면 처음부터 다시 셉니다. LED 가 빠르게 깜빡입니다.
+- WAIT_UPRIGHT: 손으로 세워 기준각 ±5 도 안에 0.3 초 머물면 제어를 시작합니다.
+- BALANCE: 목표 각도 = 트림 + 조이스틱 전진량 x 3 도 - Ks x (속도 추정 / 255). 속도가 붙으면 목표를 뒤로 눕혀 멈추게 하는 바깥 루프입니다. 엔코더가 없으므로 모터 출력을 저역통과한 값을 속도 대신 씁니다.
+- FALLEN: 45 도를 넘으면 모터를 끕니다. 다시 세우면 자동으로 BALANCE 로 돌아갑니다.
+
+<!-- include: part08_fw/src/asw/balance.c -->
+
