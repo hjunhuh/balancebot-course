@@ -335,3 +335,26 @@ Uno 의 USB 단자와 전원 잭은 보드 왼쪽(X 가 작은 쪽)에 있습니
 
 생성 스크립트의 미리보기 그림도 같은 방식으로 바퀴와 모터, 서포트를 원통으로 넣어 그렸습니다. 실제 모터 길이는 감속비마다 다르므로(약 50 ~ 65 mm) 가지고 있는 모터를 자로 재서 고칩니다. 바퀴와 배터리를 컴포넌트 Properties 의 Physical Material 이나 Override 질량으로 실제 무게를 넣으면 INSPECT > Center of Mass 로 무게중심을 바로 볼 수 있습니다.
 
+## 6-10 2D 도면 작성 (Drawing 워크스페이스)
+
+도면은 출력 대행을 맡기거나 레이저 커팅을 의뢰할 때, 그리고 조립할 때 옆에 두고 보는 자료입니다.
+
+1. 하판 컴포넌트만 보이게 하고 File > New Drawing > From Design 을 누릅니다.
+2. 대화상자에서 Full Assembly 대신 `plate_bottom` 만 선택, Standard `ISO`, Units `mm`, Sheet Size `A4`, OK.
+3. Base View 가 마우스에 붙어 나옵니다. Orientation `Top`, Scale `1:1`, Style 은 숨은선 없는 것으로 정하고 시트 왼쪽에 클릭해 놓습니다.
+4. Projected View: 기준도를 클릭하고 아래로 끌어 정면도(두께 4 mm 확인용)를 놓습니다.
+5. Center Mark Pattern 으로 모든 구멍에 중심선을 넣습니다.
+6. Dimension(D): 전체 120 과 75, 모서리 홀 간격 108 과 63, 가장자리에서 6 을 넣습니다. 치수끼리 겹치면 드래그해 바깥으로 뺍니다.
+7. 구멍이 많으면 TABLES > Hole Table 로 원점을 판 왼쪽 아래 모서리로 정해 좌표표를 만듭니다. 아래 그림의 오른쪽 표와 같은 형태입니다.
+8. Text 로 재료(PLA), 수량, 두께를 표제란에 적습니다.
+9. 출력은 Print 로 합니다 (개인용 라이선스는 도면 내보내기가 제한될 수 있습니다).
+
+생성 스크립트도 같은 정보를 담은 도면 그림을 만듭니다. 내 Fusion 도면과 비교해 숫자가 같은지 확인합니다.
+
+![하판 도면](part06_mech/img/drawing_bottom.png)
+![중판 도면](part06_mech/img/drawing_middle.png)
+![상판 도면](part06_mech/img/drawing_top.png)
+![모터 브래킷 도면](part06_mech/img/drawing_bracket.png)
+
+도면 읽는 법: 빨간 1점 쇄선은 중심선, 파란 선은 치수선, 점선은 숨은선(보이지 않는 구멍)입니다. 중판과 상판의 파란 또는 초록 점선 사각형은 Uno 와 배터리 홀더 외곽으로, 실제로 가공하는 선이 아니라 배치 확인용입니다.
+
