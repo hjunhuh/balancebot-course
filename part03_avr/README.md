@@ -212,3 +212,78 @@ void loop() {
 
 ---
 
+## 3-02 ChatGPT 활용법
+
+ChatGPT 는 레지스터 코드의 뼈대를 빠르게 만들어 주지만, AVR 계열 칩이 많아서 **다른 칩의 레지스터 이름**을 섞거나 **분주 계산을 틀리는** 일이 자주 있습니다. 그래서 "생성은 AI, 검증은 데이터시트" 원칙으로 씁니다.
+
+### 프롬프트 템플릿
+
+```
+역할: 너는 AVR 펌웨어 엔지니어다.
+대상: ATmega328P, F_CPU = 16 MHz (외부 크리스탈), avr-gcc + avr-libc, Arduino 라이브러리 사용 금지.
+목표: <무엇을 할지 한 문장>
+핀: <Uno 핀과 AVR 포트, 예: D10 = PB2>
+설정값: <모드, 분주, 주기, 보율 등 이미 정한 값>
+요구사항:
+ 1. 레지스터 이름과 비트 이름은 avr/io.h 에 정의된 ATmega328P 이름만 사용 (예: TIMSK1, UCSR0B).
+ 2. 레지스터마다 어떤 비트를 왜 켰는지 주석으로 설명.
+ 3. 계산식(분주, TOP, UBRR 등)을 숫자 대입 과정까지 주석으로 보여 줄 것.
+ 4. ISR 과 공유하는 변수는 volatile, 16비트 이상 공유 변수는 ATOMIC_BLOCK 으로 읽기.
+ 5. 블로킹 대기에는 타임아웃을 둘 것.
+ 6. -Wall -Wextra -std=gnu99 에서 경고 없이 빌드될 것.
+출력: main.c 하나, 그리고 데이터시트에서 확인해야 할 레지스터 목록.
+```
+
+### 데이터시트 대조 검증 체크리스트
+
+| 항목 | 확인 방법 |
+|---|---|
+| 레지스터 이름 | `TIMSK`, `UCSRC`, `URSEL`, `GICR` 처럼 ATmega8/16/32 의 이름이 섞이지 않았는지 확인합니다. 328P 는 `TIMSK1`, `UCSR0C`, `EIMSK` 처럼 번호가 붙습니다. 빌드 오류가 나면 거의 이 문제입니다. |
+| 비트 위치와 소속 레지스터 | 모드 비트가 두 레지스터에 나뉘는 경우를 특히 봅니다. 예: Timer1 의 WGM11:10 은 TCCR1A, WGM13:12 는 TCCR1B 에 있습니다. Register Description 의 비트 표와 한 비트씩 대조합니다. |
+| 모드 표 | WGM, COM, CS, ADPS, ISC 값을 데이터시트 표의 행과 대조합니다. "CTC 모드 4, TOP = OCR1A" 처럼 모드 번호와 TOP 까지 확인합니다. |
+| 분주와 주기 계산 | 답에 나온 계산식을 직접 다시 계산합니다 (예: 16 MHz / 64 / 250 = 1000 Hz). 0 부터 세는 레지스터는 `- 1` 이 빠지지 않았는지 봅니다. |
+| UART U2X | U2X0 = 1 이면 UBRR 식의 16 이 8 로 바뀝니다. U2X 를 켜면서 16 으로 계산한 코드가 흔합니다. |
+| 플래그 지우기 방식 | TIFR1, EIFR, TWCR 의 TWINT 등은 **1 을 써야** 지워집니다. `&= ~` 로 지우는 코드는 틀린 것입니다. |
+| 시간 제한 순서 | EEPROM(EEMPE 다음 4 클럭 안에 EEPE), 워치독(WDCE 다음 4 클럭 안에 변경)은 순서와 인터럽트 금지를 확인합니다. |
+| ISR 이름 | `SIG_OVERFLOW0` 같은 옛 이름이 아니라 `TIMER0_OVF_vect` 같은 `_vect` 이름인지, 벡터가 328P 에 존재하는지 확인합니다. |
+| Arduino 혼용 | `digitalWrite`, `delay`, `Serial`, `Wire` 가 섞이지 않았는지 확인합니다. |
+| 빌드와 동작 | 마지막으로 반드시 빌드하고, 실제 보드나 시뮬레이터에서 오실로스코프, LED, 시리얼 출력으로 확인합니다. |
+
+### 실제 프롬프트 예 1: Timer1 1 ms 틱
+
+```
+ATmega328P, F_CPU 16 MHz, avr-gcc. Arduino 라이브러리 없이 Timer1 을 CTC 모드로 써서
+1 ms 마다 비교 일치 A 인터럽트가 걸리게 하고, 그 안에서 volatile uint32_t 카운터를 올리는
+millis() 함수를 만들어 줘. 분주는 64 로 하고 OCR1A 계산 과정을 주석으로 보여 줘.
+millis() 는 util/atomic.h 의 ATOMIC_BLOCK 으로 읽어. TCCR1A, TCCR1B, TIMSK1 의 각 비트를
+데이터시트 표 기준으로 설명해 줘.
+```
+
+검증 포인트: `OCR1A = 249` 인지 (250 이면 0.4 % 느려짐), `WGM12` 가 TCCR1B 에 있는지, `TIMSK` 가 아니라 `TIMSK1` 인지, CS12:10 = 011 인지 확인합니다. 결과는 lab05 와 비교합니다.
+
+### 실제 프롬프트 예 2: UART 9600 bps 와 printf
+
+```
+ATmega328P, 16 MHz. USART0 을 9600 bps, 8N1, U2X0 = 1 (2배속)로 설정하는 코드를 작성해 줘.
+UBRR0 값을 계산식과 함께 구하고, 실제 보율과 오차(%)도 계산해 줘.
+printf 가 UART 로 나가도록 FDEV_SETUP_STREAM 으로 FILE 을 만들어 stdout 에 연결해 줘.
+fdevopen 은 쓰지 마. '\n' 앞에 '\r' 을 붙여 줘.
+```
+
+검증 포인트: UBRR0 = 16000000 / (8 x 9600) - 1 = 207 이고 오차가 0.16 % 인지, UCSR0C 에 `URSEL` 같은 없는 비트가 없는지, `UCSZ01 | UCSZ00` 로 8비트인지 확인합니다. 결과는 lab09 와 비교합니다.
+
+### 실제 프롬프트 예 3: TWI 로 MPU6050 읽기
+
+```
+ATmega328P, 16 MHz, TWI 하드웨어(폴링, 인터럽트 사용 안 함)로 400 kHz I2C 마스터 드라이버를
+만들어 줘. 함수는 twi_start(addr, rw), twi_write(byte), twi_read(ack, *byte), twi_stop().
+TWINT 대기에는 약 1 ms 타임아웃을 넣고, 각 단계마다 util/twi.h 의 상태 코드(TW_START,
+TW_MT_SLA_ACK 등)를 확인해 오류 코드를 돌려줘. 이 드라이버로 MPU6050(주소 0x68)의
+WHO_AM_I(0x75)를 읽고, 0x3B 부터 14바이트를 반복 START 로 연속 읽어 빅엔디언 int16_t 로
+결합해 줘. TWBR 계산식도 보여 줘.
+```
+
+검증 포인트: SCL = 16 MHz / (16 + 2 x TWBR x 분주) 에서 TWBR = 12, TWPS = 0 인지, 상태 코드를 `TWSR & 0xF8` 로 비교하는지, 마지막 바이트를 NACK(TWEA = 0)으로 받는지, START 뒤 주소를 보낼 때 TWSTA 를 지우는지 확인합니다. 결과는 lab11 과 비교합니다.
+
+---
+
