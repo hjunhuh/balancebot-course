@@ -430,3 +430,49 @@ loop ran 256 times
 2. `do { digits++; n /= 10; } while (n != 0);` 를 쓰면 n = 0일 때도 1이 나옵니다.
 3. tick 15에서 두 작업이 겹칩니다 (3과 5의 공배수). 실제 펌웨어도 같은 틱에 여러 작업이 몰릴 수 있음을 고려해야 합니다.
 
+## 2-07 함수와 스택
+
+함수를 `main` 보다 아래에 정의하면 위쪽에 원형(선언)을 둡니다. C의 인자 전달은 항상 값 전달이라서 함수 안에서 매개변수를 바꿔도 호출한 쪽 변수는 그대로입니다. 원본을 바꾸려면 주소(포인터)를 넘깁니다 (2-10).
+
+함수를 호출할 때마다 복귀 주소, 매개변수, 지역 변수가 스택에 쌓이고 함수가 끝나면 사라집니다. ATmega328P의 SRAM은 2 KB뿐이므로 재귀나 큰 지역 배열은 스택 오버플로를 일으키기 쉽습니다. 펌웨어에서는 재귀를 쓰지 않습니다.
+
+<!-- include: part02_c/07_functions.c -->
+
+실행 결과 (4번의 바이트 수는 컴파일러, 최적화 옵션, 플랫폼에 따라 다르며 "호출마다 일정하게 늘어난다" 는 점만 보면 됩니다):
+
+```
+== 1. small reusable functions ==
+clamp16(300, -255, 255)  = 255
+clamp16(-80, -255, 255)  = -80
+map_range(50, -100, 100, -255, 255) = 127
+map_range(512, 0, 1023, 0, 5000)    = 2502
+
+== 2. pass by value ==
+before call: speed = 100
+inside func: value = 0
+after call : speed = 100 (unchanged)
+
+== 3. recursion ==
+0! = 1
+5! = 120
+10! = 3628800
+
+== 4. stack grows with each call ==
+depth 1: local is about 79 bytes below main's variable
+depth 2: local is about 175 bytes below main's variable
+depth 3: local is about 271 bytes below main's variable
+depth 4: local is about 367 bytes below main's variable
+```
+
+자주 하는 실수:
+
+- 함수 원형 없이 아래쪽 함수를 호출하는 경우 (C99에서는 경고, 결과를 신뢰할 수 없음).
+- 매개변수를 바꾸면 원본이 바뀐다고 기대하는 경우.
+- 반환형이 있는 함수에서 일부 경로에 `return` 이 없는 경우 (`-Wall` 이 `control reaches end of non-void function` 으로 알려 줌).
+
+연습 문제 힌트:
+
+1. `unsigned long r = 1; for (unsigned i = 2; i <= n; i++) r *= i;` 이 PC(`unsigned long` 64비트)에서는 21!부터 넘칩니다. AVR(32비트)에서는 13!부터 넘칩니다.
+2. 나눗셈을 먼저 하면 `(50 + 100) / 200` 이 0이 되어 결과가 크게 틀립니다. 정수 연산은 곱셈을 먼저 합니다 (단, 곱셈 결과가 넘치지 않는지 확인).
+3. `(int16_t)(((int32_t)a + b) / 2)` 처럼 넓은 자료형에서 더합니다.
+
