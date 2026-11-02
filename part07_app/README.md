@@ -285,3 +285,62 @@ HC-05 전원이 꺼지거나 거리가 멀어지면 `read()` 가 `IOException` �
 
 사용자가 [끊기]를 누르면 `disconnect()` 가 소켓을 닫습니다. 소켓을 닫으면 블록되어 있던 `read()` 나 `connect()` 가 예외로 깨어나는데, 이때는 `worker` 필드가 이미 `null` 이라서 "내가 지금 작업 스레드가 아니구나" 를 알고 오류 메시지 없이 조용히 끝납니다. 닫기 작업도 송신 Executor 에 넣기 때문에 직전에 보낸 `$D,0,0` 이 먼저 전송된 뒤 소켓이 닫힙니다.
 
+## 7-08 프로토콜 클래스와 체크섬
+
+SPEC 4장의 프로토콜을 한 번 더 정리합니다.
+
+```
+앱 -> 로봇 : $<TYPE>[,<필드>...]*<HH>\n
+로봇 -> 앱 : #<TYPE>[,<필드>...]*<HH>\n
+```
+
+- HH 는 시작 문자(`$` 또는 `#`) 다음부터 `*` 직전까지 모든 바이트의 XOR, 대문자 16진수 2자리입니다.
+- 필드는 10진 정수만 씁니다. 실수는 100배 정수로 보냅니다 (Kp 25.00 은 2500).
+- 프레임 최대 길이는 48바이트이고 `\r` 은 무시합니다.
+
+체크섬을 손으로 계산해 보면 다음과 같습니다.
+
+| 프레임 본문 | 바이트 | XOR | 완성 프레임 |
+|---|---|---|---|
+| `G` | 0x47 | 0x47 | `$G*47` |
+| `M,1` | 0x4D, 0x2C, 0x31 | 0x4D ^ 0x2C = 0x61, 0x61 ^ 0x31 = 0x50 | `$M,1*50` |
+| `E,4` | 0x45, 0x2C, 0x34 | 0x45 ^ 0x2C = 0x69, 0x69 ^ 0x34 = 0x5D | `#E,4*5D` |
+
+`Protocol.java` 는 Android 클래스를 하나도 import 하지 않습니다. 그래서 같은 파일을 앱에도 쓰고, PC 의 javac 로 테스트도 합니다.
+
+<!-- include: part07_app/app/src/main/java/com/example/balancebot/Protocol.java -->
+
+주요 메서드는 다음과 같습니다.
+
+| 메서드 | 하는 일 |
+|---|---|
+| `checksum(body)` | 본문 XOR 계산 |
+| `drive`, `pid`, `trim`, `speedGain`, `motor`, `save`, `get` | 앱 -> 로봇 프레임 생성 (끝에 `\n` 포함). 범위를 벗어난 게인은 예외, 조이스틱은 -100..100 으로 자름 |
+| `telemetry`, `params`, `ok`, `error` | 로봇 -> 앱 프레임 생성 (테스트용) |
+| `parse(line)` | 한 줄을 `Message` 객체로. 체크섬이 틀리면 `ProtocolException(CHECKSUM)` |
+| `tryParse(line)` | 실패하면 `null` 을 돌려주는 간편판 |
+| `LineAssembler.feed()` | 조각난 바이트를 줄 단위로 모음 |
+| `parseX100("1.25")`, `formatX100(125)` | 입력칸 문자열과 x100 정수 사이 변환 |
+| `stateName(3)` | 상태 번호를 이름("BALANCE")으로 |
+
+`parseX100()` 은 `double` 을 쓰지 않고 `BigDecimal` 로 변환합니다. `Double.parseDouble("0.29") * 100` 은 28.999999999999996 이 되어 정수로 자르면 28 이 되는 문제가 있기 때문입니다.
+
+### PC 에서 테스트하기
+
+<!-- include: part07_app/test/ProtocolTest.java -->
+
+`part07_app` 폴더에서 다음 명령으로 컴파일하고 실행합니다.
+
+```
+javac -encoding UTF-8 -d build/test app/src/main/java/com/example/balancebot/Protocol.java test/ProtocolTest.java
+java -cp build/test ProtocolTest
+```
+
+모두 통과하면 다음처럼 출력됩니다.
+
+```
+ProtocolTest: 모든 검사 통과 (93개)
+```
+
+테스트는 SPEC 의 예시 `$G*47`, `$M,1*50` 을 글자 그대로 확인하고, `#A,-125,40,7600,3` 프레임을 만든 뒤 다시 파싱해 값이 같은지(왕복), 체크섬 한 자리만 틀려도 거부하는지, 쪼개져 들어온 바이트를 줄로 바르게 모으는지 검사합니다. Java 의 `assert` 문은 `-ea` 옵션 없이는 꺼져 있으므로 쓰지 않고, 직접 비교해서 틀리면 예외를 던집니다.
+
