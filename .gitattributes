@@ -1,0 +1,3 @@
+# GitHub Languages 통계에서 HTML 제외
+*.html linguist-detectable=false
+site/** linguist-generated=true
