@@ -165,3 +165,27 @@ Autodesk Fusion은 수익이 거의 없는 개인 취미 용도라면 "Fusion fo
 
 ![하판 도면](part06_mech/img/drawing_bottom.png)
 
+## 6-04 Extrude, Hole, Fillet, Chamfer, Mirror, Pattern
+
+이 과정의 부품은 여섯 가지 명령으로 거의 다 만들 수 있습니다.
+
+| 명령 | 위치 (SOLID 탭) | 단축키 | 핵심 옵션 |
+|---|---|---|---|
+| Extrude | CREATE | E | Profile(닫힌 영역) 선택, Distance, Operation (New Body, Join, Cut, New Component) |
+| Hole | CREATE | H | 위치(면 위 클릭 또는 스케치 점), Extents = All, Hole Type = Simple, Diameter |
+| Fillet | MODIFY | F | 모서리 선택, Radius |
+| Chamfer | MODIFY | | 모서리 선택, Distance |
+| Mirror | CREATE | | Pattern Type (Faces, Features, Bodies), Mirror Plane |
+| Rectangular Pattern | CREATE > Pattern | | 대상, 방향 2개, Quantity, Distance, Distribution (Spacing 은 간격, Extent 는 전체 길이) |
+| Circular Pattern | CREATE > Pattern | | 대상, 축, Quantity |
+
+알아 둘 점:
+
+- **Extrude Cut 과 Hole 의 차이**: 원을 스케치해 Extrude Cut 해도 구멍이 생기지만, Hole 명령으로 만들면 도면에서 구멍 주석(지름, 관통)이 자동으로 붙고 나중에 볼트 규격으로 바꾸기 쉽습니다. 원형 관통홀은 Hole, 슬롯은 Extrude Cut 을 씁니다.
+- **Extent = All**: 판 두께를 바꿔도 구멍이 끝까지 뚫리도록 깊이 대신 All(관통)을 고릅니다.
+- **Pattern 대상 선택**: Features 로 패턴하면 원본 피처를 고쳤을 때 복사본도 같이 바뀝니다.
+- **Mirror 평면**: 플레이트 중심을 지나는 평면이 필요하면 CONSTRUCT > Midplane 으로 양 끝면 사이 중간 평면을 만듭니다.
+- **Fillet 과 Chamfer**: 플레이트 모서리 R4 는 Fillet 으로, 모터 구멍 입구처럼 끼워 넣는 곳은 Chamfer 0.5 mm 로 입구를 넓히면 조립이 쉽습니다.
+
+![모터 브래킷 도면](part06_mech/img/drawing_bracket.png)
+
