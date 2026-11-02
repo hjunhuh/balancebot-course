@@ -84,3 +84,11 @@ Part 3 의 lab05 와 같습니다. 32비트 변수를 8비트 CPU 가 네 번에
 
 <!-- include: part08_fw/src/bsw/bsw_tick.c -->
 
+## 8-05 BSW: GPIO 와 PWM
+
+PWM 에서 놓치기 쉬운 점: Fast PWM 은 OCR 이 0 이어도 매 주기 한 클럭 폭의 펄스가 나옵니다. 그래서 듀티 0 이면 비교출력을 끊고 핀을 LOW 로 둡니다.
+
+<!-- include: part08_fw/src/bsw/bsw_gpio.c -->
+
+<!-- include: part08_fw/src/bsw/bsw_pwm.c -->
+
