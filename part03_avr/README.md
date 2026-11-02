@@ -895,3 +895,96 @@ ERR unknown: HELLO
 
 ---
 
+## 3-13 lab11 TWI(I2C) 드라이버와 MPU6050
+
+### 배선
+
+| GY-521 | Uno 핀 | AVR | 비고 |
+|---|---|---|---|
+| VCC | 5V | | 모듈에 3.3 V 레귤레이터 내장 |
+| GND | GND | | |
+| SCL | A5 | PC5 / SCL | 모듈에 풀업 저항 있음 |
+| SDA | A4 | PC4 / SDA | 모듈에 풀업 저항 있음 |
+| AD0 | (연결 안 함) | | 주소 0x68 (모듈 내부에서 GND 로 풀다운) |
+| INT | D2 | PD2 / INT0 | 예비, 이 실습에서는 사용 안 함 |
+
+### 핵심 레지스터
+
+| 레지스터 | 비트 | 값 | 의미 |
+|---|---|---|---|
+| TWBR | 8비트 | 12 | 비트레이트 (400 kHz) |
+| TWSR | TWPS1:0 (bit 1:0) | 00 | 분주 1 |
+| TWSR | TWS7:3 (bit 7:3) | 읽기 | 상태 코드 (`TW_STATUS` = TWSR & 0xF8) |
+| TWCR | TWINT (bit 7) | 1 쓰기 | 플래그 지우기 = 다음 동작 시작, 동작 완료 시 1 |
+| TWCR | TWEA (bit 6) | 1 / 0 | 수신 후 ACK / NACK |
+| TWCR | TWSTA (bit 5) | 1 | START 생성 |
+| TWCR | TWSTO (bit 4) | 1 | STOP 생성 (완료되면 자동으로 0) |
+| TWCR | TWEN (bit 2) | 1 | TWI 켜기 (SDA, SCL 핀을 TWI 가 가져감) |
+| TWDR | 8비트 | | 송신할 바이트 / 받은 바이트 |
+
+주요 상태 코드 (`<util/twi.h>`):
+
+| 코드 | 이름 | 의미 |
+|---|---|---|
+| 0x08 | TW_START | START 전송됨 |
+| 0x10 | TW_REP_START | 반복 START 전송됨 |
+| 0x18 / 0x20 | TW_MT_SLA_ACK / NACK | SLA+W 에 ACK / NACK |
+| 0x28 / 0x30 | TW_MT_DATA_ACK / NACK | 데이터에 ACK / NACK |
+| 0x40 / 0x48 | TW_MR_SLA_ACK / NACK | SLA+R 에 ACK / NACK |
+| 0x50 / 0x58 | TW_MR_DATA_ACK / NACK | 데이터 받고 ACK / NACK 보냄 |
+
+MPU6050 설정 (SPEC 기준값):
+
+| 레지스터 | 주소 | 값 | 의미 |
+|---|---|---|---|
+| PWR_MGMT_1 | 0x6B | 0x01 | 슬립 해제, 클럭 = 자이로 X PLL |
+| SMPLRT_DIV | 0x19 | 4 | 샘플률 = 1 kHz / (1 + 4) = 200 Hz |
+| CONFIG | 0x1A | 3 | DLPF 가속도 44 Hz, 자이로 42 Hz |
+| GYRO_CONFIG | 0x1B | 0x00 | +-250 dps (131 LSB/dps) |
+| ACCEL_CONFIG | 0x1C | 0x00 | +-2 g (16384 LSB/g) |
+| WHO_AM_I | 0x75 | 읽기 | 0x68 이어야 정상 |
+| ACCEL_XOUT_H.. | 0x3B..0x48 | 읽기 | AX, AY, AZ, TEMP, GX, GY, GZ 각 2바이트 |
+
+### 계산식
+
+```
+SCL = F_CPU / (16 + 2 x TWBR x 4^TWPS) = 16,000,000 / (16 + 2 x 12 x 1) = 400,000 Hz
+14 바이트 읽기 = (SLA+W, reg, SLA+R, 데이터 14) x 9 비트 + START/STOP = 약 160 비트 / 400 kHz = 약 0.4 ms
+빅엔디언 결합: value = (int16_t)((H << 8) | L)
+가속도[g] = raw / 16384,  각속도[dps] = raw / 131,  온도[C] = raw / 340 + 36.53
+```
+
+예: 센서를 수평으로 놓으면 AZ 는 약 +16384 (1 g), AX 와 AY 는 0 근처, 자이로는 정지 상태에서 수십 이내의 오프셋입니다.
+
+### 코드
+
+<!-- include: part03_avr/lab11_i2c_mpu6050/main.c -->
+
+### 동작 확인
+
+```
+lab11 MPU6050
+WHO_AM_I err=0 val=0x68 (expect 0x68)
+init err=0
+A    -312    120  16544  G    -45     12    -20  T 2788
+```
+
+센서를 기울이면 가속도 값이 바뀌고, 돌리면 자이로 값이 커집니다. SDA 선을 빼면 `read err=` 가 출력되지만 프로그램이 멈추지 않는지(타임아웃) 확인합니다.
+
+### 자주 하는 실수
+
+- START 뒤 주소를 보낼 때 TWCR 에 TWSTA 를 그대로 둬서 START 가 반복됩니다.
+- 마지막 바이트까지 ACK 를 보내 센서가 버스를 놓지 않습니다. 마지막은 NACK 입니다.
+- 상태 코드를 `TWSR` 그대로 비교합니다. 하위 비트(TWPS)를 지우기 위해 `& 0xF8` 이 필요합니다.
+- PWR_MGMT_1 을 쓰지 않아 센서가 슬립 상태로 모두 0 을 돌려줍니다.
+- 상위, 하위 바이트를 `uint8_t` 끼리 시프트하고 부호를 잃어, 음수가 65000 근처의 큰 수로 나옵니다.
+- 타임아웃이 없어 선이 하나 빠지면 로봇 전체가 멈춥니다. 밸런싱 로봇에서는 모터가 마지막 값으로 계속 도는 위험한 상황이 됩니다.
+
+### 연습 문제
+
+1. 센서를 가만히 둔 상태에서 자이로 값 200개의 평균을 구해 오프셋을 빼는 보정 루틴을 만들어 보세요 (Part 8 의 CALIB 상태).
+2. `atan2()` 없이 가속도 AY, AZ 로 대략적인 기울기를 정수로 구해 보세요 (작은 각도에서 각도[rad] 약 AY / AZ).
+3. TWBR 을 72 로 바꾸면 SCL 이 몇 Hz 인지 계산해 보세요 (답: 100 kHz).
+
+---
+
