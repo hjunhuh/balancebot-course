@@ -33,3 +33,13 @@
 
 - Uno 의 VIN 은 내부 5 V 레귤레이터로 들어갑니다. 입력이 약 7 V 이상이어야 5 V 가 안정적으로 나옵니다. 배터리가 6.6 V 아래로 내려가면 저전압 보호(SYS-07)가 모터를 멈추는 이유 중 하나입니다.
 
+## 5-02 KiCad 9 설치와 화면 구성
+
+1. kicad.org 에서 KiCad 9 를 내려받아 설치합니다 (기본 라이브러리 포함 옵션 선택).
+2. 프로젝트 관리자에서 File > New Project, 이름 `balancebot_shield`.
+3. 주요 창
+   - Schematic Editor: 회로도 (심볼 배치, 배선, ERC)
+   - PCB Editor: 기판 (풋프린트 배치, 배선, DRC, 3D 보기)
+   - Symbol / Footprint Editor: 라이브러리에 없는 부품 직접 만들기
+4. 자주 쓰는 단축키 (회로도): A 심볼 추가, W 배선, L 라벨, P 전원 심볼, M 이동, R 회전, E 속성. (PCB): X 배선, V 비아, D 드래그, F 앞뒤 뒤집기.
+
