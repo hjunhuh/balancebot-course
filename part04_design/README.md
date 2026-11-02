@@ -108,3 +108,35 @@
 | SWR-09 | 워치독 250 ms 를 사용한다. | SYS-06 | main | 코드 리뷰 |
 | SWR-10 | I2C 의 모든 대기에는 타임아웃이 있다. | SYS-09 | bsw_i2c | TC-13 |
 
+## 4-07 HSI 설계서 (Hardware Software Interface)
+
+HSI 는 HW 팀과 SW 팀이 "이 핀에 무엇이 어떤 전기적 성질로 연결되고, SW 의 어느 모듈이 어떻게 다루는지"를 합의하는 문서입니다. 회로를 그리기 전에 확정하고, 바뀌면 양쪽이 함께 개정합니다.
+
+| 신호 | Uno 핀 | AVR | 방향 | 전기적 특성 | 연결 | SW 모듈 | 설정 |
+|---|---|---|---|---|---|---|---|
+| BT_RX | D0 | PD0/RXD0 | In | 3.3 V 로직 입력 (5 V MCU 에서 HIGH 로 인식) | HC-05 TXD | bsw_uart | 9600 8N1, RX 인터럽트 |
+| BT_TX | D1 | PD1/TXD0 | Out | 5 V 출력, 1k/2k 분압으로 3.3 V | HC-05 RXD | bsw_uart | UDRE 인터럽트 송신 |
+| IMU_INT | D2 | PD2/INT0 | In | 예비 | MPU6050 INT | 없음 (v1) | 입력 |
+| BTN | D3 | PD3/INT1 | In | 내부 풀업, 눌림 LOW | 택트 스위치 | bsw_gpio | 100 ms 주기 읽기 |
+| MR_IN3 | D4 | PD4 | Out | 5 V 로직 | L298N IN3 | bsw_gpio, motor | |
+| MR_PWM | D5 | PD5/OC0B | Out | PWM 7.8 kHz | L298N ENB (점퍼 제거) | bsw_pwm, motor | Timer0 Fast PWM |
+| ML_PWM | D6 | PD6/OC0A | Out | PWM 7.8 kHz | L298N ENA (점퍼 제거) | bsw_pwm, motor | Timer0 Fast PWM |
+| ML_IN1 | D7 | PD7 | Out | 5 V 로직 | L298N IN1 | bsw_gpio, motor | |
+| ML_IN2 | D8 | PB0 | Out | 5 V 로직 | L298N IN2 | bsw_gpio, motor | |
+| MR_IN4 | D9 | PB1 | Out | 5 V 로직 | L298N IN4 | bsw_gpio, motor | |
+| LED_STAT | D10 | PB2 | Out | 330 옴 직렬, 약 9 mA | 상태 LED | bsw_gpio | |
+| VBAT_SENSE | A0 | PC0/ADC0 | Analog | 0..2.8 V (배터리 / 3), 100 nF | 20k/10k 분압 | bsw_adc, battery | AVcc 기준 |
+| I2C_SDA | A4 | PC4/SDA | I/O | 오픈드레인, 모듈 풀업 | MPU6050 SDA | bsw_i2c | 400 kHz |
+| I2C_SCL | A5 | PC5/SCL | Out | 오픈드레인, 모듈 풀업 | MPU6050 SCL | bsw_i2c | 400 kHz |
+| VBAT | VIN | | 전원 | 6.4~8.4 V | 배터리 스위치 뒤 | | |
+| 5V | 5V | | 전원 | Uno 레귤레이터 출력 | MPU6050, HC-05 VCC | | |
+
+주의 사항 (HSI 에 함께 적어 둡니다)
+
+- L298N 의 ENA, ENB 점퍼를 반드시 빼야 PWM 이 동작합니다 (점퍼가 있으면 항상 최고 속도).
+- L298N 의 5V 출력을 Uno 의 5V 핀에 연결하지 않습니다 (USB 전원과 충돌). 모듈의 12V 입력은 배터리, 5V-EN 점퍼는 그대로 둡니다.
+- D0, D1 은 USB 시리얼과 공유됩니다. AVRISP mkII 로 기록하므로 문제없지만, USB 시리얼 모니터와 HC-05 를 동시에 쓰지 않습니다.
+- D11, D12, D13 은 ISP 기록 핀이라 이 설계에서는 비워 둡니다.
+
+CSV 원본: `part04_design/HSI.csv`
+
