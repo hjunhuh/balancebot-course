@@ -1,0 +1,16 @@
+ref,value,qty,footprint,note
+J1,Arduino UNO R3,1,Module:Arduino_UNO_R3_WithMountingHoles,stackable headers 6/8/8/10
+J2,1x06 socket,1,Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical,HC-05
+J3,1x08 socket,1,Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical,GY-521 MPU6050
+J4,1x07 pin header,1,Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical,L298N control
+J5;J6,2P terminal block,2,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2_1x02_P5.00mm_Horizontal",battery in / L298N power out
+D1,1N5822,1,Diode_THT:D_DO-201AD_P15.24mm_Horizontal,3A Schottky reverse protection
+D2,LED 3mm,1,LED_THT:LED_D3.0mm,status LED
+R1,20k,1,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,VBAT divider top
+R2,10k,1,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,VBAT divider bottom
+R3,1k,1,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,HC-05 RXD divider
+R4,2k,1,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,HC-05 RXD divider
+R5,330,1,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,LED
+C1,470uF 16V,1,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,bulk
+C2;C3;C4;C5,100nF,4,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,decoupling / ADC filter
+SW1,tact switch,1,Button_Switch_THT:SW_PUSH_6mm,motor enable toggle
