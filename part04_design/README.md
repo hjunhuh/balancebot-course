@@ -183,3 +183,16 @@ HC-05 --UART--> proto_rx_feed --msg--> cmd_handle --joy, params-+             v
                                                                      motor_set --PWM--> L298N
 ```
 
+## 4-09 SW 인터페이스 명세 (주요 함수)
+
+| 모듈 | 함수 | 입력 | 출력 | 호출 주기 |
+|---|---|---|---|---|
+| balance | `balance_step(b, in, out)` | ax, az [g], gy [deg/s], vbat [mV], joy, enable | pwm_l, pwm_r (-255..255) | 5 ms |
+| kalman | `kalman_update(k, acc_angle, rate, dt)` | [deg], [deg/s], [s] | 각도 [deg] | 5 ms |
+| pid | `pid_update(p, e, d, dt)` | 오차 [deg], 각속도 [deg/s] | 출력 (제한됨) | 5 ms |
+| protocol | `proto_rx_feed(rx, c, msg)` | 1 바이트 | NONE, MSG, ERR | 바이트마다 |
+| cmd | `cmd_handle(ctx, msg, reply, sz)` | 메시지 | 응답 프레임 길이 | 메시지마다 |
+| params | `params_deserialize(p, blob)` | 22 바이트 | 성공 여부 | 부팅 시 |
+| motor | `motor_set(l, r)` | -255..255 | 방향핀, PWM | 5 ms |
+| mpu6050 | `mpu6050_read(raw)` | | 7개 int16, 성공 여부 | 5 ms |
+
