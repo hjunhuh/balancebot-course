@@ -1052,3 +1052,116 @@ $P,12
 2. `typedef void (*StateFn)(Robot *r, ...);` 를 만들고 `STATE_FN[r->state](r, ...)` 로 호출합니다. 범위 밖 값 검사를 잊지 마세요.
 3. `typedef int (*Pred)(int16_t);` 를 받아 `for (i...) if (pred(buf[i])) return i; return -1;`
 
+## 2-18 미니 프로젝트: 링버퍼 (다중 파일)
+
+링버퍼(원형 큐)는 고정 크기 배열을 원처럼 돌려 쓰는 FIFO입니다. UART 수신 인터럽트가 바이트를 넣고(`rb_put`), 메인 루프가 꺼내 한 줄 프레임을 조립합니다(`rb_get`). 인터럽트는 언제든 바이트를 넣을 수 있고 메인 루프는 5 ms마다 꺼내므로, 그 사이에 도착한 바이트를 잠시 보관하는 완충 장치입니다.
+
+설계 포인트:
+
+| 항목 | 선택 | 이유 |
+|---|---|---|
+| 크기 | 2의 거듭제곱 (1..128) | `i % SIZE` 대신 `i & (SIZE - 1)` 사용, AVR에는 나눗셈 명령이 없음 |
+| head, tail | 계속 증가하는 `uint8_t` | 개수 = `head - tail`, 순환해도 올바름, 모든 칸 사용 가능 |
+| 역할 분리 | ISR은 head만, 메인은 tail만 변경 | 생산자 하나, 소비자 하나면 인터럽트 금지 없이 안전 |
+| 가득 참 | 새 바이트를 버리고 `overflow` 증가 | 생산자가 tail을 건드리지 않게 하기 위함 |
+
+파일 구성은 다음과 같습니다.
+
+- `ringbuf.h`: 공개 인터페이스(타입, 함수 원형)와 헤더 가드, 크기 검사 `#error`
+- `ringbuf.c`: 구현
+- `main.c`: 사용 예와 UART 수신 시뮬레이션
+
+빌드:
+
+```
+gcc -Wall -Wextra -std=c99 18_ringbuffer/main.c 18_ringbuffer/ringbuf.c -o ringbuffer
+```
+
+헤더 가드는 같은 헤더가 여러 번 포함되어도 내용이 한 번만 들어가게 합니다.
+
+```
+#ifndef RINGBUF_H
+#define RINGBUF_H
+...
+#endif
+```
+
+<!-- include: part02_c/18_ringbuffer/ringbuf.h -->
+
+<!-- include: part02_c/18_ringbuffer/ringbuf.c -->
+
+<!-- include: part02_c/18_ringbuffer/main.c -->
+
+실행 결과 (`sizeof(RingBuf)` 는 head, tail, overflow 3바이트와 버퍼 8바이트의 합입니다):
+
+```
+RB_SIZE=8 RB_MASK=0x07 sizeof(RingBuf)=11
+
+== 1. put and get ==
+init                       head=  0 tail=  0 count=0 free=8 overflow=0
+put 10,20,30,40,50         head=  5 tail=  0 count=5 free=3 overflow=0
+get: 10 20 30
+after 3 gets               head=  5 tail=  3 count=2 free=6 overflow=0
+
+== 2. wrap around ==
+put 60..110                head= 11 tail=  3 count=8 free=0 overflow=0
+slot: [0]= 90 [1]=100 [2]=110 [3]= 40 [4]= 50 [5]= 60 [6]= 70 [7]= 80
+get: 40 50 60 70 80 90 100 110
+empty again                head= 11 tail= 11 count=0 free=8 overflow=0
+
+== 3. overflow ==
+A B C D E F G H I(drop) J(drop) K(drop)
+after 11 puts              head= 19 tail= 11 count=8 free=0 overflow=3
+get: A B C D E F G H
+
+== 4. head/tail counters roll over 255 -> 0 ==
+put 4 bytes from 254       head=  2 tail=254 count=4 free=4 overflow=0
+get: 0 1 2 3
+
+== 5. UART simulation: ISR puts, main loop builds frames ==
+frame: "$G*47"
+frame: "$M,1*50"
+frame: "$T,-35*53"
+end of stream              head= 25 tail= 25 count=0 free=8 overflow=0
+
+== 6. main loop too slow -> overflow ==
+no polling                 head=  8 tail=  0 count=8 free=0 overflow=17
+frame: "$G*47"
+partial line left: 1 bytes (frames lost)
+```
+
+6번은 메인 루프가 제때 꺼내지 않으면 무슨 일이 생기는지 보여 줍니다. 버퍼 8바이트만 남고 나머지 17바이트는 버려져 첫 프레임만 살아남습니다.
+
+`RB_SIZE` 를 2의 거듭제곱이 아닌 값으로 빌드하면 전처리 단계에서 멈춥니다 (실제 출력).
+
+```
+$ gcc -DRB_SIZE=6u -Wall -Wextra -std=c99 18_ringbuffer/main.c 18_ringbuffer/ringbuf.c -o build/rb6
+In file included from 18_ringbuffer/main.c:16:
+18_ringbuffer/ringbuf.h:35:2: error: #error "RB_SIZE must be a power of two between 1 and 128"
+   35 | #error "RB_SIZE must be a power of two between 1 and 128"
+      |  ^~~~~
+In file included from 18_ringbuffer/ringbuf.c:18:
+18_ringbuffer/ringbuf.h:35:2: error: #error "RB_SIZE must be a power of two between 1 and 128"
+   35 | #error "RB_SIZE must be a power of two between 1 and 128"
+      |  ^~~~~
+```
+
+자주 하는 실수:
+
+- 헤더에 함수 정의나 변수 정의를 넣어 여러 `.c` 에서 포함할 때 "multiple definition" 링크 오류가 나는 경우. 헤더에는 선언만 둡니다.
+- 직접 만든 헤더를 `<ringbuf.h>` 로 포함해 찾지 못하는 경우. `"ringbuf.h"` 로 씁니다.
+- `ringbuf.c` 를 빌드 명령에서 빠뜨려 "undefined reference to rb_put" 이 나는 경우.
+- 데이터를 쓰기 전에 head를 증가시켜, 그 순간 메인 루프가 아직 쓰이지 않은 칸을 읽는 경우.
+
+연습 문제 힌트 (main.c):
+
+1. `#error "RB_SIZE must be a power of two between 1 and 128"` 이 나옵니다. 2의 거듭제곱이 아니면 마스크로 위치를 구할 수 없고, 256을 나누어 떨어지지 않아 head, tail 순환 시 위치가 어긋납니다.
+2. 9바이트마다 꺼내면 8바이트 버퍼가 넘쳐 프레임이 깨집니다. 9600 bps에서 5 ms 동안 약 5바이트가 들어오므로, 메인 루프가 한 번 늦어지는 경우까지 고려해 최대 프레임 48바이트 이상인 64를 씁니다.
+3. `rb_get` 과 같지만 `tail` 을 증가시키지 않습니다.
+
+연습 문제 힌트 (ringbuf.h, ringbuf.c):
+
+- 헤더 가드를 지우고 두 번 포함하면 `conflicting types for 'RingBuf'` 같은 오류가 납니다 (같은 타입이 두 번 정의됨).
+- 크기 256을 허용하면 가득 찼을 때 `head - tail = 256` 이 `uint8_t` 로 0이 되어 비어 있는 것으로 보입니다. `uint16_t` 인덱스면 32768까지 가능하지만 AVR에서 16비트 읽기는 원자적이지 않아 다시 보호가 필요합니다.
+- head 증가를 먼저 하면 메인 루프가 아직 쓰이지 않은 칸을 읽을 수 있습니다. 덮어쓰기 방식은 생산자가 tail을 바꾸므로 소비자와 동시에 tail을 바꾸는 경쟁이 생깁니다.
+
