@@ -860,3 +860,60 @@ final state = LOW_BATT (telemetry st=6)
 2. `if (!enable) change_state(r, ST_IDLE); else if (r->state == ST_IDLE) change_state(r, ST_WAIT_UPRIGHT);`
 3. `default` 가 있으면 `case ST_IDLE` 을 지워도 `default` 로 처리되므로 경고가 없습니다. `default` 까지 지우면 `-Wall` 에 포함된 `-Wswitch` 가 `enumeration value 'ST_IDLE' not handled in switch` 경고를 냅니다. 그래서 상태 머신에서는 일부러 `default` 없이 모든 `case` 를 나열해 빠진 상태를 컴파일러가 찾게 하는 방식도 많이 씁니다.
 
+## 2-15 전처리기
+
+전처리기는 컴파일 전에 글자를 치환합니다. 매크로 함수는 함수가 아니라 글자 치환이므로 다음 두 규칙을 지킵니다.
+
+1. 인자 하나하나와 전체 식에 괄호를 씌웁니다: `#define SQUARE(x) ((x) * (x))`
+2. 인자에 `++` 나 함수 호출을 넣지 않습니다. 두 번 평가될 수 있습니다. 가능하면 `static inline` 함수를 씁니다.
+
+설정 매크로(`F_CPU`, `BAUD`, `MOTOR_R_INVERT`)는 한곳에 모으고, `#if` 와 `#error` 로 잘못된 값을 빌드 단계에서 막습니다. `#ifndef F_CPU` 처럼 감싸 두면 `-DF_CPU=8000000UL` 로 명령줄에서 바꿀 수 있습니다. 여러 문장 매크로는 `do { ... } while (0)` 로 감쌉니다.
+
+<!-- include: part02_c/15_preprocessor.c -->
+
+실행 결과:
+
+```
+== 1. config macros ==
+F_CPU=16000000 BAUD=9600 UBRR_VALUE=207
+control period = 5000 us
+
+== 2. parentheses matter ==
+SQUARE_BAD(a + 1)  = 7
+SQUARE_GOOD(a + 1) = 16
+10 * DOUBLE_BAD(a)  = 33
+10 * DOUBLE_GOOD(a) = 60
+
+== 3. double evaluation ==
+MAX_MACRO(next_value(), 5) = 20, calls = 2
+max_inline(next_value(), 5) = 10, calls = 1
+
+== 4. conditional compile and do-while(0) ==
+[15_preprocessor.c:108] a is positive
+DEBUG_LOG is ON (build with -DDEBUG_LOG=0 to remove logs)
+
+== 5. # and ## ==
+STR(CONTROL_HZ)  = CONTROL_HZ
+XSTR(CONTROL_HZ) = 200
+PORTB=0x04 PORTD=0x80
+
+== 6. motor invert config ==
+cmd=120 -> left=120 right=-120
+
+== 7. predefined macros ==
+file=15_preprocessor.c line=130 func=main
+target: PC (not __AVR__)
+```
+
+자주 하는 실수:
+
+- 매크로 정의 끝에 세미콜론을 붙이는 경우 (`#define N 10;`).
+- 매크로 이름과 괄호 사이에 공백을 넣는 경우 (`#define SQ (x) ...` 는 함수형 매크로가 아님).
+- `16000000` 처럼 큰 상수에 `UL` 을 빠뜨려 AVR의 16비트 연산에서 넘치는 경우.
+
+연습 문제 힌트:
+
+1. `a + 1 * a + 1` 로 펼쳐진 줄을 찾을 수 있습니다.
+2. `1U << 2 * 2` 가 되어 `*` 가 먼저 계산되므로 `1U << 4 = 16` 이 됩니다 (기대값 8).
+3. `16000000 / (8 * 115200) - 1 = 16` (정수), 실제 보레이트는 `16000000 / (8 * 17) = 117647` 로 오차 약 2.1 %입니다. `#if` 에서는 정수만 쓸 수 있으므로 오차를 1000배 정수로 계산해 비교합니다.
+
