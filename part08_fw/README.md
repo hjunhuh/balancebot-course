@@ -104,3 +104,11 @@ PWM 에서 놓치기 쉬운 점: Fast PWM 은 OCR 이 0 이어도 매 주기 한
 
 <!-- include: part08_fw/src/bsw/bsw_i2c.c -->
 
+## 8-08 BSW: ADC 와 EEPROM
+
+EEPROM 한 바이트 쓰기는 약 3.3 ms 입니다. 파라미터 22 바이트를 한 번에 쓰면 73 ms 동안 제어가 멈춰 로봇이 넘어집니다. 그래서 메인 루프가 돌 때마다 한 바이트씩 진행하는 비차단 방식으로 만들었습니다.
+
+<!-- include: part08_fw/src/bsw/bsw_adc.c -->
+
+<!-- include: part08_fw/src/bsw/bsw_eeprom.c -->
+
