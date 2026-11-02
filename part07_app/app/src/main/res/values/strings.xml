@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BalanceBot</string>
+
+    <!-- 구역 제목 -->
+    <string name="section_connection">연결</string>
+    <string name="section_telemetry">텔레메트리</string>
+    <string name="section_joystick">조이스틱</string>
+    <string name="section_pid">PID 튜닝</string>
+    <string name="section_rx">수신 확인</string>
+
+    <!-- 연결 -->
+    <string name="btn_connect">연결</string>
+    <string name="btn_disconnect">끊기</string>
+    <string name="state_disconnected">연결 안 됨</string>
+    <string name="state_connecting">연결 중: %1$s</string>
+    <string name="state_connected">연결됨: %1$s</string>
+    <string name="dlg_pick_title">페어링된 기기 선택</string>
+    <string name="dlg_no_paired">페어링된 기기가 없습니다. 휴대폰 설정의 블루투스 메뉴에서 HC-05 를 먼저 페어링하세요 (PIN 1234).</string>
+    <string name="bt_not_supported">이 기기는 블루투스를 지원하지 않습니다.</string>
+    <string name="bt_off">블루투스가 꺼져 있습니다.</string>
+    <string name="bt_connect_failed">%1$s 에 연결하지 못했습니다.</string>
+    <string name="bt_connection_lost">블루투스 연결이 끊어졌습니다.</string>
+    <string name="perm_denied">근처 기기 권한이 없어 연결할 수 없습니다.</string>
+
+    <!-- 모터 -->
+    <string name="motor_enable">모터 허용</string>
+
+    <!-- 텔레메트리 -->
+    <string name="none">-</string>
+    <string name="tele_angle">각도: %1$s 도</string>
+    <string name="tele_output">출력: %1$d</string>
+    <string name="tele_output_none">출력: -</string>
+    <string name="tele_battery">배터리: %1$s V</string>
+    <string name="tele_state">상태: %1$d %2$s</string>
+    <string name="tele_state_none">상태: -</string>
+
+    <!-- 조이스틱 -->
+    <string name="joy_value">x %1$d, y %2$d</string>
+    <string name="joy_value_zero">x 0, y 0</string>
+
+    <!-- PID 튜닝 -->
+    <string name="label_kp">Kp</string>
+    <string name="label_ki">Ki</string>
+    <string name="label_kd">Kd</string>
+    <string name="label_trim">Trim</string>
+    <string name="label_ks">Ks</string>
+    <string name="hint_kp">예: 25.00</string>
+    <string name="hint_ki">예: 0.10</string>
+    <string name="hint_kd">예: 0.80</string>
+    <string name="hint_trim">기준 각도 보정(도), 예: -1.50</string>
+    <string name="hint_ks">예: 12.00</string>
+    <string name="btn_send">보내기</string>
+    <string name="btn_read">읽기</string>
+    <string name="btn_save">저장</string>
+    <string name="err_decimal">숫자를 소수 둘째 자리까지 입력하세요</string>
+    <string name="err_range">%1$s 부터 %2$s 까지 입력할 수 있습니다</string>
+    <string name="msg_check_input">입력값을 확인하세요.</string>
+    <string name="msg_saved">로봇 EEPROM 에 저장했습니다.</string>
+    <string name="msg_not_connected">먼저 로봇에 연결하세요.</string>
+    <string name="msg_robot_error">로봇 오류 %1$d: %2$s</string>
+
+    <!-- 수신 확인 -->
+    <string name="rx_stats">정상 %1$d 줄, 무시 %2$d 줄</string>
+</resources>
