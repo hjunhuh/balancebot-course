@@ -1,0 +1,38 @@
+// 앱 모듈 빌드 설정 (Groovy DSL)
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.balancebot'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.example.balancebot'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+
+    // 람다 식을 쓰므로 Java 8 이상이 필요합니다.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // Android Studio 의 Empty Views Activity 템플릿 기본 의존성만 씁니다.
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+}
