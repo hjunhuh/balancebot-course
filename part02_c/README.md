@@ -979,3 +979,76 @@ expected 0x00000100, ISR saw 0x00000000 in the middle, final 0x00000100
 2. (가)와 (다)입니다. (나)는 메인에서만 쓰고, (라)는 바뀌지 않습니다.
 3. `uint8_t` 는 명령 하나(`lds`)로 읽히므로 중간에 끼어들 틈이 없습니다. `uint32_t` 는 명령 네 개로 나눠 읽으므로 그 사이에 ISR이 실행될 수 있습니다.
 
+## 2-17 함수 포인터와 명령 테이블
+
+함수 이름은 그 함수의 주소이므로 변수에 담아 나중에 호출할 수 있습니다. `typedef` 로 타입 이름을 만들면 읽기 쉽습니다.
+
+```
+typedef int (*CmdHandler)(const char *args);
+```
+
+콜백은 "무엇을 할지" 를 함수로 넘기는 방식입니다 (`qsort` 의 비교 함수가 대표적). 명령 테이블은 `{ 명령 문자, 처리 함수 }` 의 배열로, 새 명령을 추가할 때 표에 한 줄만 넣으면 되어 `switch` 가 길어지지 않습니다. Part 8의 블루투스 명령 처리가 이 구조를 씁니다. 응답 `#O,c` 와 `#E,n` 은 SPEC 4장의 오류 번호를 따릅니다.
+
+<!-- include: part02_c/17_function_pointer.c -->
+
+실행 결과:
+
+```
+== 1. function pointer basics ==
+op = add : op(6, 7) = 13
+op = mul : op(6, 7) = 42
+ops[0] (add)(3, 4) = 7
+ops[1] (mul)(3, 4) = 12
+
+== 2. callbacks ==
+  sample[0] = 40
+  sample[1] = -10
+  sample[2] = 25
+  sample[3] = 5
+  sample[4] = -30
+  sum via callback = 30
+  qsort result: -30 -10 5 25 40
+
+== 3. command table dispatch ==
+$P,1200,50,80
+  -> PID set kp=1200 ki=50 kd=80
+  reply #O,P
+$T,-35
+  -> trim set -35
+  reply #O,T
+$T,5000
+  reply #E,3
+$M,0
+  -> motor DISABLED
+  reply #O,M
+$G
+  -> #K,1200,50,80,-35,...
+  reply #O,G
+$S
+  -> 'S' has no handler
+  reply #E,4
+$X,1
+  reply #E,4
+$P,12
+  reply #E,2
+
+== 4. help from the table ==
+  P : PID gains x100
+  T : trim angle x100
+  M : motor enable 0/1
+  G : get parameters
+  S : save (not implemented in this demo)
+```
+
+자주 하는 실수:
+
+- `NULL` 함수 포인터를 호출하는 경우 (AVR에서는 리셋 벡터로 점프해 재시작한 것처럼 보임).
+- 시그니처가 다른 함수를 캐스트로 억지로 넣는 경우.
+- `int *f(int)` (포인터를 돌려주는 함수)와 `int (*f)(int)` (함수 포인터)를 혼동하는 경우.
+
+연습 문제 힌트:
+
+1. `static int cmd_speed(const char *args)` 를 `cmd_trim` 과 같은 모양으로 만들고 범위를 0..100000으로 검사한 뒤 `{ 'V', cmd_speed, "speed gain x100" }` 을 추가합니다.
+2. `typedef void (*StateFn)(Robot *r, ...);` 를 만들고 `STATE_FN[r->state](r, ...)` 로 호출합니다. 범위 밖 값 검사를 잊지 마세요.
+3. `typedef int (*Pred)(int16_t);` 를 받아 `for (i...) if (pred(buf[i])) return i; return -1;`
+
