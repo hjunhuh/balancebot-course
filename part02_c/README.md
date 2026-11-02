@@ -690,3 +690,56 @@ left in buffer (no newline yet): "$D,10" (5 bytes)
 2. `rx` 의 `$M,1*51` 을 `$M,1*50` 으로 바꿉니다.
 3. `for (const uint8_t *p = buf; p < buf + n; p++) if (*p == c) return p; return NULL;`
 
+## 2-12 구조체
+
+구조체는 관련된 값을 하나로 묶은 사용자 정의 자료형입니다. `typedef` 로 이름을 붙이고, `.필드 = 값` 형태의 지정 초기화로 읽기 쉽게 초기화합니다. 구조체는 대입하면 통째로 복사되고, 포인터로 받을 때는 `p->field` (`(*p).field` 와 같음)로 접근합니다.
+
+예제에서는 MPU6050 원시값(`ImuRaw`), PID 파라미터(`PidParam`), PID 상태(`PidState`)를 구조체로 만들었습니다. `PidState` 는 파라미터를 포인터로 가리키므로 파라미터를 바꾸면 바로 반영됩니다. 첫 출력이 -255로 포화되는 것은 첫 스텝에서 미분항이 크게 튀는 현상(derivative kick)이며, Part 8에서 다룹니다.
+
+컴파일러는 멤버를 정렬하려고 빈칸(패딩)을 넣을 수 있어 `sizeof` 가 멤버 크기의 합보다 클 수 있습니다.
+
+<!-- include: part02_c/12_struct.c -->
+
+실행 결과 (패딩 결과는 PC 기준이며, AVR에서는 둘 다 6바이트입니다):
+
+```
+== 1. struct and designated initializer ==
+acc(   120,   -40, 16300) gyro(    85,   -12,    30)
+sizeof(ImuRaw) = 14 (7 x int16_t)
+
+== 2. assignment copies all members ==
+sample.gx=85 copy.gx=0
+
+== 3. modify through pointer (->) ==
+acc(   120,   -40, 16300) gyro(     5,    -2,     5)
+
+== 4. array of structs ==
+log[0] ax=   0 (x0.01 g)  gx=  100 (x0.01 dps)
+log[1] ax=  50 (x0.01 g)  gx= -200 (x0.01 dps)
+log[2] ax=  -1 (x0.01 g)  gx=    0 (x0.01 dps)
+
+== 5. struct holding a pointer: PID ==
+angle=  500 -> out=-255 (integral=-500)
+angle=  300 -> out=   4 (integral=-800)
+angle=  100 -> out=  54 (integral=-900)
+angle=  -50 -> out=  72 (integral=-850)
+angle= -100 -> out=  44 (integral=-750)
+after kp change: out=49
+
+== 6. padding ==
+struct Padded: sizeof=12 offsets a=0 b=4 c=8
+struct Packed: sizeof=8 offsets b=0 a=4 c=5
+```
+
+자주 하는 실수:
+
+- 큰 구조체를 값으로 넘겨 매번 복사하는 경우. 읽기만 하면 `const` 포인터로 넘깁니다.
+- 구조체를 `==` 로 비교하는 경우 (C에서는 불가능, 멤버별로 비교).
+- 통신으로 받은 바이트를 구조체에 `memcpy` 해서 해석하는 경우. 패딩과 엔디언 때문에 플랫폼마다 결과가 다릅니다.
+
+연습 문제 힌트:
+
+1. `b->mv = mv; int p = ((int)mv - 6400) * 100 / 2000;` 그다음 0..100으로 제한하고, `b->low = (mv < 6400);`
+2. 큰 멤버를 앞에 둡니다: `uint32_t b; uint8_t a; uint8_t c;` 는 4 + 1 + 1 = 6에 정렬 패딩 2를 더해 8입니다.
+3. `if (s->integral > 100000) s->integral = 100000;` 처럼 누적 직후 양쪽을 제한합니다.
+
