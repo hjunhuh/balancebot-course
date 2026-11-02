@@ -524,3 +524,62 @@ index 7 rejected (length 5)
 2. `for (i = 0, j = n - 1; i < j; i++, j--) { tmp = a[i]; a[i] = a[j]; a[j] = tmp; }`
 3. 세 값 중 최댓값도 최솟값도 아닌 값을 고르면 중앙값입니다. 한 번 튀는 값은 중앙값이 될 수 없어 완전히 사라집니다.
 
+## 2-09 문자열과 파싱
+
+C 문자열은 끝에 `'\0'` (값 0)이 붙은 `char` 배열입니다. `"HC-05"` 는 5글자지만 6바이트를 차지합니다. 문자열은 `==` 로 비교하면 주소를 비교하므로 내용 비교에는 `strcmp` 를 씁니다.
+
+통신 데이터는 깨질 수 있으므로 `atoi` 대신 오류를 구분하는 파서를 직접 만듭니다. 핵심은 `'7' - '0' = 7` 이라는 것과 `value = value * 10 + digit` 입니다. 반대로 숫자를 문자열로 만들 때는 버퍼 크기를 받는 `snprintf` 를 씁니다. `sprintf` 는 버퍼가 넘쳐도 멈추지 않습니다.
+
+<!-- include: part02_c/09_strings.c -->
+
+실행 결과:
+
+```
+== 1. a string is a char array ending with '\0' ==
+text="HC-05" strlen=5 sizeof=6
+name[0] = 0x48 'H'
+name[1] = 0x43 'C'
+name[2] = 0x2D '-'
+name[3] = 0x30 '0'
+name[4] = 0x35 '5'
+name[5] = 0x00 (end mark)
+
+== 2. compare and copy ==
+strcmp(cmd, "BALANCE") = 0
+strcmp("A", "B")       = -1 (negative)
+copied into 6-byte buffer: "WAIT_"
+
+== 3. parse integers by hand ==
+"1200" -> OK 1200
+"-350" -> OK -350
+"+42" -> OK 42
+"0" -> OK 0
+"abc" -> ERROR
+"" -> ERROR
+"99999999999" -> ERROR
+"-2147483648" -> OK -2147483648
+
+== 4. parse comma separated fields ==
+kp=1200 ki=50 kd=80
+
+== 5. build a frame with snprintf ==
+frame="#A,-152,87,7820,3" length=17
+tiny="#A,-152" wanted=10 (truncated: yes)
+
+== 6. hex digits ==
+0x47 as text: "47"
+```
+
+자주 하는 실수:
+
+- `'\0'` 자리를 계산하지 않아 버퍼를 한 칸 작게 잡는 경우.
+- `strncpy` 가 항상 `'\0'` 을 붙여 준다고 생각하는 경우 (원본이 길면 붙이지 않음).
+- `'A'` (문자, 정수 65)와 `"A"` (문자열, 2바이트 배열)를 혼동하는 경우.
+- `atoi` 의 반환값 0을 "숫자 0" 으로 믿는 경우.
+
+연습 문제 힌트:
+
+1. `if (c >= '0' && c <= '9') return c - '0'; if (c >= 'A' && c <= 'F') return c - 'A' + 10;` 소문자도 같은 방식으로 처리하고 나머지는 -1을 돌려줍니다.
+2. `"P,1200,,80"` 은 두 번째 숫자에서 숫자가 없어 실패, `"P,1200,50,80,7"` 은 세 번째 숫자 뒤가 `'\0'` 이 아니어서 형식 오류가 납니다.
+3. 음수면 부호를 기억하고 양수로 바꾼 뒤 `n % 10 + '0'` 을 배열에 쌓고, 마지막에 배열을 뒤집고 `'\0'` 을 붙입니다.
+
