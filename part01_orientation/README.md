@@ -74,3 +74,22 @@ PCB 제작과 배송에 1~2 주가 걸리므로 4 주차에 반드시 발주합�
 
 18650 셀은 보호회로가 있는 제품을 쓰고, 전용 충전기로만 충전합니다. 단락되면 큰 전류가 흘러 위험합니다.
 
+## 1-05 저장소 사용법
+
+```
+balancebot-course/
+  SPEC.md            모든 파트가 따르는 공통 사양 (핀맵, 프로토콜, 치수)
+  part01_orientation/
+  part02_c/          C 실습 18개 + Makefile
+  part03_avr/        AVR 실습 15개 + Makefile
+  part04_design/     요구사항, HSI, 추적성 (CSV 포함)
+  part05_hw/         회로 설계 문서, BOM, 블록 다이어그램
+  part06_mech/       STL, 도면 PNG, 파라메트릭 생성 스크립트
+  part07_app/        Android 앱 소스
+  part08_fw/         밸런싱 로봇 펌웨어, 단위 테스트, 시뮬레이터
+  part09_test/       통합 테스트 명세, 결과 보고서 템플릿
+  part10_portfolio/  포트폴리오 템플릿
+```
+
+각 파트 폴더의 README 가 강의 본문입니다. 학습 사이트는 이 README 들을 모아 만든 것이라 내용이 같습니다.
+
