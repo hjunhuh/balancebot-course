@@ -1,0 +1,17 @@
+signal,uno_pin,avr_pin,direction,electrical,connected_to,sw_module,setting
+BT_RX,D0,PD0/RXD0,In,3.3V logic input,HC-05 TXD,bsw_uart,9600 8N1 RX interrupt
+BT_TX,D1,PD1/TXD0,Out,5V out via 1k/2k divider to 3.3V,HC-05 RXD,bsw_uart,UDRE interrupt TX
+IMU_INT,D2,PD2/INT0,In,reserved,MPU6050 INT,none (v1),input
+BTN,D3,PD3/INT1,In,internal pull-up; pressed=LOW,tact switch to GND,bsw_gpio,polled 100 ms
+MR_IN3,D4,PD4,Out,5V logic,L298N IN3,bsw_gpio/motor,
+MR_PWM,D5,PD5/OC0B,Out,PWM 7.8 kHz,L298N ENB (jumper removed),bsw_pwm/motor,Timer0 Fast PWM
+ML_PWM,D6,PD6/OC0A,Out,PWM 7.8 kHz,L298N ENA (jumper removed),bsw_pwm/motor,Timer0 Fast PWM
+ML_IN1,D7,PD7,Out,5V logic,L298N IN1,bsw_gpio/motor,
+ML_IN2,D8,PB0,Out,5V logic,L298N IN2,bsw_gpio/motor,
+MR_IN4,D9,PB1,Out,5V logic,L298N IN4,bsw_gpio/motor,
+LED_STAT,D10,PB2,Out,330 ohm series ~9 mA,status LED,bsw_gpio,
+VBAT_SENSE,A0,PC0/ADC0,Analog,0-2.8V (VBAT/3) + 100nF,20k/10k divider,bsw_adc/battery,AVcc ref /128
+I2C_SDA,A4,PC4/SDA,I/O,open-drain; module pull-up,MPU6050 SDA,bsw_i2c,400 kHz
+I2C_SCL,A5,PC5/SCL,Out,open-drain; module pull-up,MPU6050 SCL,bsw_i2c,400 kHz
+VBAT,VIN,-,Power,6.4-8.4V,battery after switch,-,-
+5V,5V,-,Power,Uno regulator out,MPU6050 VCC / HC-05 VCC,-,-
