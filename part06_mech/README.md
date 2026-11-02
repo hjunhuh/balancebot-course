@@ -189,3 +189,58 @@ Autodesk Fusion은 수익이 거의 없는 개인 취미 용도라면 "Fusion fo
 
 ![모터 브래킷 도면](part06_mech/img/drawing_bracket.png)
 
+## 6-05 하판 모델링 따라하기 (단계별 클릭 순서와 수치)
+
+하판은 모터 브래킷 2개(아랫면)와 L298N(윗면)을 받칩니다. 아래 도면의 좌표표를 옆에 띄워 두고 따라 합니다. 좌표 원점은 플레이트 왼쪽 아래 모서리입니다.
+
+![하판 도면](part06_mech/img/drawing_bottom.png)
+
+### 1단계: 컴포넌트 만들기
+
+1. 브라우저 맨 위 문서 이름을 오른쪽 클릭 > New Component.
+2. Name 에 `plate_bottom` 입력, OK.
+3. 브라우저에서 `plate_bottom` 옆 라디오 버튼이 켜져 있는지(활성 컴포넌트) 확인합니다. 이후 만드는 스케치와 바디는 이 컴포넌트 안에 들어갑니다.
+
+### 2단계: 외곽과 Extrude
+
+1. Create Sketch > XY 평면.
+2. 2-Point Rectangle(R): 원점 클릭, `120` 입력, Tab, `75` 입력, Enter.
+3. 모든 선이 검은색인지 확인 (원점에 붙었으므로 완전 구속). Finish Sketch.
+4. Extrude(E): 사각형 안쪽 클릭, Distance `4`, Operation New Body, OK.
+5. Fillet(F): 판의 세로 모서리 4개(두께 방향 짧은 모서리)를 클릭, Radius `4`, OK.
+
+### 3단계: 모서리 M4 홀 4개
+
+1. Hole(H): 판 윗면을 클릭해 위치를 정합니다. 나타난 기준 핸들로 왼쪽 변과 아래 변을 차례로 클릭하고 각각 `6` 입력.
+2. Extents `All`, Hole Type `Simple`, Diameter `4.4`, OK.
+3. Rectangular Pattern: Pattern Type `Features`, Objects 에서 타임라인의 방금 만든 Hole 을 선택.
+4. Directions 에서 판의 아래 긴 모서리 선택, Distribution `Spacing`, Quantity `2`, Distance `108`.
+5. 두 번째 방향(Direction 2)으로 왼쪽 짧은 모서리 선택, Quantity `2`, Distance `63`. 화살표 방향이 판 안쪽을 향하는지 확인하고 OK.
+
+### 4단계: 모터 브래킷 고정 M3 홀 4개 (B1 ~ B4)
+
+1. 판 윗면에 Create Sketch.
+2. Point 로 점 2개를 찍고 치수(D)로 B1 (15, 16.5), B2 (15, 58.5) 를 맞춥니다. 왼쪽 변에서 `15`, 아래 변에서 `16.5` 와 `58.5`.
+3. Finish Sketch, Hole(H) 에서 Sketch Points 로 두 점을 고르고 Extents `All`, Diameter `3.4`.
+4. Mirror: Pattern Type `Features`, 방금 Hole 선택, Mirror Plane 은 CONSTRUCT > Midplane 으로 왼쪽 끝면과 오른쪽 끝면 사이에 만든 평면(X = 60). B3 (105, 16.5), B4 (105, 58.5) 가 생깁니다.
+
+간격 42 mm 는 브래킷 플랜지의 고정 홀 간격과 같아야 합니다. 브래킷 위치(X = 15)는 모터 기어박스 앞면이 플레이트 가장자리에서 2 mm 안쪽, 브래킷이 그 앞면에서 3 mm 떨어진 위치에서 계산된 값입니다 (브래킷 길이 20 mm 의 중심 = 2 + 3 + 10).
+
+### 5단계: L298N M3 홀 4개 (C1 ~ C4)
+
+1. Hole(H): 윗면을 클릭하고 기준 모서리에서 X `41.5`, Y `19` 를 입력, Diameter `3.4`, Extents `All`.
+2. Rectangular Pattern: 방금 Hole, 방향 1 은 긴 모서리 Quantity `2` Distance `37`, 방향 2 는 짧은 모서리 Quantity `2` Distance `37`.
+3. 결과 C1 (41.5, 19), C2 (78.5, 19), C3 (78.5, 56), C4 (41.5, 56). 37 x 37 정사각형의 중심이 판 중심 (60, 37.5) 과 같은지 확인합니다.
+
+### 6단계: 모터 배선 슬롯 (S1, S2)
+
+1. 판 윗면에 Create Sketch.
+2. Center to Center Slot: 첫 중심 (33, 32.5), 둘째 중심 (33, 42.5), 폭 `6`. 결과 슬롯은 6 x 16 mm 입니다 (중심 간 거리 10 + 양 끝 반원 3 + 3).
+3. 위 중심을 수평 중심선(Y = 37.5)에 대해 Symmetry 로 묶고, 왼쪽 변에서 `33` 치수를 주어 완전 구속합니다.
+4. Finish Sketch, Extrude(E): 슬롯 안쪽 선택, Operation `Cut`, Extent `All`.
+5. Mirror 로 S2 (87, 37.5) 를 만듭니다.
+
+### 7단계: 확인
+
+브라우저에서 바디를 오른쪽 클릭 > Properties 를 열어 Volume 이 약 **34,705 mm³ (34.7 cm³)** 인지 봅니다. 생성 스크립트가 계산한 이론 부피와 같으면 구멍 크기와 개수가 모두 맞은 것입니다.
+
