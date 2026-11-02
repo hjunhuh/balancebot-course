@@ -242,3 +242,17 @@ SPEC 4장의 프레임을 바이트 단위로 조립합니다. 시작 문자를 
 
 <!-- include: part08_fw/src/asw/cmd.c -->
 
+## 8-16 EEPROM 파라미터 저장
+
+| 주소 | 크기 | 내용 |
+|---|---|---|
+| 0 | 2 | magic 0xB0B1 |
+| 2 | 1 | version 1 |
+| 3 | 4 x 4 | kp, ki, kd, ks (x100) |
+| 19 | 2 | trim (x100 도) |
+| 21 | 1 | CRC8 (다항식 0x07) |
+
+처음 부팅한 보드의 EEPROM 은 모두 0xFF 라 magic 이 맞지 않습니다. 이때와 CRC 가 틀릴 때, 범위를 벗어날 때는 모두 기본값을 씁니다. 앱에서 `$S` 를 보내면 비차단 쓰기가 끝난 뒤 `#O,S` 와 `#K` 를 보냅니다.
+
+<!-- include: part08_fw/src/asw/params.c -->
+
