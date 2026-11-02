@@ -192,3 +192,24 @@ AI 답변을 받으면 아래 순서로 확인합니다. 하나라도 걸리면 
 
 AI 가 레이아웃만 주고 Java 를 주지 않았다면, 레이아웃이 Java 와 맞는지 확인하는 책임은 우리에게 있다는 점을 기억하세요.
 
+## 7-05 레이아웃 XML
+
+전체 레이아웃입니다. 구역마다 제목 TextView 를 두고, 가로로 나란히 놓을 위젯은 가로 LinearLayout 에 `layout_width="0dp"`, `layout_weight="1"` 을 주어 같은 너비로 나눕니다.
+
+<!-- include: part07_app/app/src/main/res/layout/activity_main.xml -->
+
+눈여겨볼 점은 다음과 같습니다.
+
+- `style="@style/SectionTitle"` 처럼 반복되는 속성은 themes.xml 의 스타일로 묶었습니다. 스타일 안에 `layout_width`, `layout_height` 를 넣었기 때문에 위젯 쪽에서는 생략해도 됩니다.
+- `com.example.balancebot.JoystickView` 는 우리가 만든 커스텀 뷰라서 패키지 이름을 포함한 전체 이름으로 씁니다.
+- `etTrim` 은 음수를 입력해야 하므로 `numberDecimal|numberSigned` 입니다. 나머지 게인은 0 이상이라 `numberDecimal` 만 씁니다.
+- 앱 제목은 `NoActionBar` 테마라서 상단 바 대신 TextView 로 직접 보여 줍니다.
+
+문자열과 테마 파일입니다.
+
+<!-- include: part07_app/app/src/main/res/values/strings.xml -->
+
+<!-- include: part07_app/app/src/main/res/values/themes.xml -->
+
+`%1$s`, `%1$d` 는 Java 에서 `getString(R.string.tele_angle, "-1.25")` 처럼 값을 끼워 넣는 자리입니다. `$s` 는 문자열, `$d` 는 정수입니다.
+
