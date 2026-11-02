@@ -153,3 +153,42 @@ Android 앱은 다음 다섯 가지 요소로 이루어집니다.
 
 `Protocol` 을 Android 와 분리해 둔 덕분에 휴대폰 없이 PC 에서 javac 로 테스트할 수 있습니다 (7-08).
 
+## 7-04 ChatGPT로 레이아웃 설계하기
+
+레이아웃 XML 은 반복이 많아 생성형 AI 의 도움을 받기 좋은 부분입니다. 다만 AI 가 만든 코드는 그럴듯해 보여도 id 가 다르거나, 쓰지 않기로 한 라이브러리를 끌어오는 일이 잦습니다. 그래서 **조건을 구체적으로 주고, 받은 결과를 정해진 순서로 검증**하는 습관이 중요합니다.
+
+### 프롬프트 예
+
+아래는 실제로 쓸 수 있는 프롬프트입니다. 7-01 의 와이어프레임 표를 그대로 붙여 넣는 것이 핵심입니다.
+
+```
+Android 앱 레이아웃 XML(activity_main.xml)을 만들어 주세요.
+
+조건:
+- 루트는 ScrollView, 그 안에 세로 LinearLayout 하나. ConstraintLayout 은 쓰지 마세요.
+- 외부 라이브러리 금지. appcompat, material 만 사용합니다.
+- 모든 문자열은 @string/ 리소스로 빼고, 필요한 strings.xml 항목도 함께 주세요.
+- 아래 id 를 정확히 이 철자로 써 주세요. 다른 id 는 추가하지 마세요.
+  tvConnState, btnConnect, btnDisconnect, switchMotor(androidx.appcompat.widget.SwitchCompat),
+  tvAngle, tvOutput, tvBattery, tvState,
+  joystick(커스텀 뷰 com.example.balancebot.JoystickView, 240dp 정사각형, 가운데 정렬), tvJoyValue,
+  etKp, etKi, etKd, etTrim, etKs (inputType numberDecimal, etTrim 은 numberSigned 도),
+  btnSendParams, btnReadParams, btnSaveParams, tvLastRx, tvRxStats
+- 화면 구성(위에서 아래):
+  (7-01 의 와이어프레임 표를 여기에 붙여 넣기)
+- 같은 속성이 반복되는 구역 제목, 텔레메트리 값, 파라미터 라벨과 입력칸은 themes.xml 의 style 로 묶어 주세요.
+```
+
+### 받은 결과를 검증하는 법
+
+AI 답변을 받으면 아래 순서로 확인합니다. 하나라도 걸리면 그 부분을 지적해서 다시 요청하거나 직접 고칩니다.
+
+1. **루트와 금지 항목**: `ScrollView` 가 루트인지, `androidx.constraintlayout`, `app:layout_constraint` 같은 문자열이 없는지 찾기(Ctrl+F)로 확인합니다.
+2. **id 대조**: 프롬프트에 준 id 목록과 XML 의 `@+id/` 를 하나씩 대조합니다. `btn_connect` 처럼 표기법을 멋대로 바꾸는 경우가 많습니다. 이 저장소 작업에서는 레이아웃의 `@+id` 목록과 Java 의 `R.id.` 목록을 스크립트로 뽑아 서로 빠진 것이 없는지 비교했습니다. 같은 일을 손으로 하려면 Android Studio 에서 Ctrl+Shift+F 로 `R.id.` 를 검색해 목록을 비교합니다.
+3. **리소스 존재**: XML 의 `@string/xxx`, `@style/xxx` 가 모두 strings.xml, themes.xml 에 있는지 봅니다. 없는 리소스는 Android Studio 가 빨간색으로 표시합니다.
+4. **위젯 종류**: Java 가 `SwitchCompat` 으로 받는데 XML 이 `Switch` 이면 실행 중 ClassCastException 으로 앱이 죽습니다. 커스텀 뷰는 패키지 이름까지 정확해야 합니다.
+5. **Design 탭 미리보기**: 레이아웃 파일을 열고 오른쪽 위 Split 또는 Design 을 눌러 와이어프레임과 같은 순서로 보이는지 확인합니다.
+6. **실행**: 마지막으로 휴대폰에서 실행해 스크롤, 키보드가 올라올 때 입력칸 가림 여부를 봅니다.
+
+AI 가 레이아웃만 주고 Java 를 주지 않았다면, 레이아웃이 Java 와 맞는지 확인하는 책임은 우리에게 있다는 점을 기억하세요.
+
