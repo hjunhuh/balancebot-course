@@ -484,3 +484,48 @@ PC 시리얼 터미널 없이 앱 화면만으로 통신과 펌웨어를 차례�
 
 3단계에서 "무시" 만 늘어나면 로봇 쪽 체크섬이나 줄끝 문자를 의심하고, 아무 줄도 오지 않으면 HC-05 의 TX, RX 배선과 보레이트(9600)를 의심합니다.
 
+## 7-13 문제 해결 체크리스트 (앱 코드 관점)
+
+### 빌드와 설치
+
+| 증상 | 원인과 확인 |
+|---|---|
+| `cannot find symbol R.id.xxx` | 레이아웃의 `@+id` 와 Java 의 `R.id` 철자가 다름. 대소문자까지 같은지 확인. 레이아웃 파일을 덮어썼는지 확인 |
+| `cannot find symbol R.string.xxx` | strings.xml 을 덮어쓰지 않았거나 이름이 다름 |
+| `package com.example.balancebot does not exist` 또는 R 을 못 찾음 | 새 프로젝트의 패키지 이름이 다름. `app/build.gradle` 의 `namespace` 가 `com.example.balancebot` 인지 확인 |
+| `resource style/Theme.BalanceBot not found` | 프로젝트 Name 이 BalanceBot 이 아니었거나 themes.xml 을 덮어쓰지 않음 |
+| `Theme.MaterialComponents` 를 못 찾음 | 의존성에 `com.google.android.material:material` 이 없음 |
+| `Manifest.permission.BLUETOOTH_CONNECT` 를 못 찾음 | compileSdk 가 31 미만. 34 로 올림 |
+| `Lambda expressions are not supported` | compileOptions 가 Java 8 미만. Java 8 이상으로 설정 |
+| 설치 실패 `INSTALL_PARSE_FAILED_MANIFEST_MALFORMED` | Activity 에 `android:exported="true"` 가 빠짐 |
+| 기기 목록에 휴대폰이 안 보임 | USB 디버깅, 데이터 케이블, 드라이버, "USB 디버깅 허용" 팝업 확인 |
+
+### 실행 중
+
+| 증상 | 원인과 확인 |
+|---|---|
+| 앱이 켜지자마자 죽음 (`ClassCastException`) | 레이아웃의 위젯 종류와 Java 의 타입이 다름. 예: XML 은 `Switch`, Java 는 `SwitchCompat` |
+| 앱이 켜지자마자 죽음 (`Error inflating class com.example.balancebot.JoystickView`) | JoystickView.java 를 복사하지 않았거나 패키지 선언이 다름. 생성자 `(Context, AttributeSet)` 가 있어야 XML 에서 만들 수 있음 |
+| `You need to use a Theme.AppCompat theme` | 매니페스트의 `android:theme` 가 우리 테마가 아님 |
+| [연결]을 눌러도 아무 반응 없음 (Android 12 이상) | 권한 대화상자에서 "허용 안 함" 을 눌렀음. 설정, 애플리케이션, BalanceBot, 권한에서 "근처 기기" 허용 |
+| `SecurityException: Need android.permission.BLUETOOTH_CONNECT` | 매니페스트에 `BLUETOOTH_CONNECT` 선언 누락, 또는 권한 확인 전에 블루투스 API 호출 |
+| 페어링 목록이 비어 있음 | 휴대폰 설정에서 HC-05 를 먼저 페어링 (PIN 1234) |
+| "HC-05 에 연결하지 못했습니다" | 로봇 전원, 다른 휴대폰이나 PC 가 이미 연결 중인지, 거리. 블루투스를 껐다 켜고 재시도. 계속 실패하면 페어링 해제 후 다시 페어링 |
+| 화면이 멈추거나 ANR | 메인 스레드에서 `connect()` 나 `read()` 를 부르고 있음. BluetoothService 의 작업 스레드를 거치는지 확인 |
+| `CalledFromWrongThreadException` | 작업 스레드에서 직접 `setText()` 를 부름. `Handler.post()` 또는 `runOnUiThread()` 로 넘김 |
+
+### 통신
+
+| 증상 | 원인과 확인 |
+|---|---|
+| 연결됐는데 텔레메트리가 안 바뀜, "정상" 0 | 로봇이 보내지 않음 (펌웨어, HC-05 TX 배선, 9600 bps). "수신 확인" 에 아무 줄도 없는지 봄 |
+| "무시" 개수만 늘어남 | 체크섬 불일치. 로봇이 소문자 16진수를 쓰거나, XOR 범위에 `#` 나 `*` 를 넣었거나, 줄끝이 `\n` 이 아님 |
+| 로봇이 `#E,1` (체크섬) 을 계속 보냄 | 앱 프레임 체크섬 문제. `ProtocolTest` 를 다시 돌려 확인. 로봇 쪽 XOR 범위도 확인 |
+| 로봇이 `#E,3` (범위) 을 보냄 | 입력값이 SPEC 범위를 벗어남 (Trim 은 -10.00 ~ 10.00) |
+| 조이스틱을 누르고 있는데 로봇이 0.5초 뒤 멈춤 | 50 ms 타이머가 돌지 않음. `onJoystickStart()` 에서 `handler.post(joyTask)` 가 불리는지, 연결 상태인지 확인 |
+| 조이스틱 위로 밀었는데 로봇이 뒤로 감 | 앱은 위가 +y 로 맞음. 로봇 쪽 모터 방향 매크로(MOTOR_L_INVERT, MOTOR_R_INVERT)나 각도 부호 확인 |
+| 조이스틱을 위아래로 움직이면 화면이 스크롤됨 | `requestDisallowInterceptTouchEvent(true)` 호출 누락 |
+| 손을 뗐는데 로봇이 계속 움직임 | `onJoystickRelease()` 에서 `$D,0,0` 을 보내는지 확인. 로봇의 500 ms 타임아웃 동작도 확인 |
+| [보내기] 후 입력칸이 이전 값으로 돌아감 | 로봇이 값을 거부했거나 `#K` 가 이전 값을 보고함. Toast 에 `#E` 가 떴는지 확인 |
+
+문제가 앱 쪽인지 로봇 쪽인지 헷갈리면, 먼저 `ProtocolTest` 로 앱의 프로토콜 코드가 맞는지 확인하고, 다음으로 "수신 확인" 구역에서 로봇이 보낸 원래 줄을 그대로 읽어 봅니다. 화면에 보이는 줄의 체크섬을 7-08 의 표처럼 손으로 계산해 보면 어느 쪽이 틀렸는지 바로 알 수 있습니다.
