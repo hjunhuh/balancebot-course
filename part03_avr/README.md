@@ -1268,3 +1268,39 @@ CPU 부하(대략)   = (1ms 평균 x 1000 + 10ms 평균 x 100 + 100ms 평균 x 1
 
 ---
 
+## 3-18 주변장치 요약과 Part 8 에서의 재사용
+
+### 주변장치 설정 요약 (SPEC 기준값)
+
+| 주변장치 | 설정 | 핵심 레지스터 값 | 핀 | 실습 |
+|---|---|---|---|---|
+| GPIO 출력 | 상태 LED | DDRB \|= 1<<PB2 | D10 | lab01, lab02 |
+| GPIO 입력 | 버튼, 내부 풀업, 디바운스 20 ms | DDRD3 = 0, PORTD3 = 1 | D3 | lab03 |
+| 외부 인터럽트 | INT1 하강 엣지 | EICRA = ISC11, EIMSK = INT1 | D3 | lab04 |
+| Timer1 | CTC, 분주 64, 1 ms 틱 | TCCR1B = 0x0B, OCR1A = 249, TIMSK1 = OCIE1A | | lab05, lab15 |
+| Timer0 | Fast PWM 8비트, 분주 8, 7812.5 Hz | TCCR0A = 0xA3, TCCR0B = 0x02 | D6, D5 | lab06, lab07 |
+| 모터 방향 | IN1..IN4 | PORTD7, PORTB0, PORTD4, PORTB1 | D7, D8, D4, D9 | lab07 |
+| ADC | AVcc 기준, 분주 128, ADC0 | ADMUX = 0x40, ADCSRA = 0x87 | A0 | lab08 |
+| UART0 | 9600 bps, U2X, 8N1, RX 인터럽트 | UBRR0 = 207, UCSR0A = 0x02, UCSR0B = 0x98, UCSR0C = 0x06 | D0, D1 | lab09, lab10, lab14 |
+| TWI | 400 kHz, 폴링, 타임아웃 | TWBR = 12, TWSR = 0 | A4, A5 | lab11 |
+| EEPROM | 직접 접근, 매직 바이트 | EEAR, EEDR, EECR | | lab12 |
+| 워치독 | 시스템 리셋 | wdt_enable(), MCUSR | | lab13 |
+
+### Part 8 밸런싱 로봇 펌웨어에서의 재사용
+
+| Part 3 실습 | Part 8 에서의 역할 |
+|---|---|
+| lab02 상태 블링크 | 상태 번호(0 INIT ~ 6 LOW_BATT)를 상태 LED 깜박임 횟수로 표시 |
+| lab03, lab04 버튼 | 모터 허용/정지 토글, 부팅 시 누르고 있으면 EEPROM 파라미터 초기화 |
+| lab05 1 ms 틱 | 시스템 시간 기준, 500 ms 조이스틱 타임아웃, 텔레메트리 100 ms 주기 |
+| lab06, lab07 PWM 과 모터 | `motor_left()`, `motor_right()` 함수 그대로, 데드존 보상, MOTOR_L/R_INVERT |
+| lab08 ADC | 배터리 전압 감시, 텔레메트리의 mv 필드, LOW_BATT 상태 전환 |
+| lab09 printf, FILE 스트림 | 디버그 출력, `#A`, `#K` 프레임 생성 (송신은 인터럽트 링버퍼로 개선) |
+| lab10 링버퍼와 파서 | `$D`, `$P`, `$T`, `$V`, `$M`, `$S`, `$G` 프레임 수신과 체크섬 검사 |
+| lab11 TWI, MPU6050 | 5 ms 마다 가속도와 자이로 읽기, 자이로 오프셋 보정(CALIB), 상보 필터 입력 |
+| lab12 EEPROM | PID 게인, 기준 각도 보정, 속도 보상 게인 저장 (`$S` 명령) |
+| lab13 워치독 | 펌웨어 멈춤 시 자동 리셋, 리셋 원인 기록, 리셋 직후 모터 정지 보장 |
+| lab14 HC-05 | 휴대폰 앱과의 블루투스 링크 (프로토콜 v1) |
+| lab15 스케줄러 | 1 ms 입력 처리, 5 ms 제어 루프(200 Hz), 100 ms 텔레메트리, 실행시간 감시 |
+
+Part 8 에서는 이 실습 코드들을 `gpio.c`, `timer.c`, `motor.c`, `adc.c`, `uart.c`, `twi.c`, `mpu6050.c`, `eeprom_param.c` 같은 모듈로 나누고, lab15 의 스케줄러 위에서 제어 루프를 돌립니다. 이 파트에서 각 레지스터 값을 데이터시트와 대조해 본 경험이 Part 8 의 디버깅 시간을 크게 줄여 줍니다.
