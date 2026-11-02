@@ -917,3 +917,65 @@ target: PC (not __AVR__)
 2. `1U << 2 * 2` 가 되어 `*` 가 먼저 계산되므로 `1U << 4 = 16` 이 됩니다 (기대값 8).
 3. `16000000 / (8 * 115200) - 1 = 16` (정수), 실제 보레이트는 `16000000 / (8 * 17) = 117647` 로 오차 약 2.1 %입니다. `#if` 에서는 정수만 쓸 수 있으므로 오차를 1000배 정수로 계산해 비교합니다.
 
+## 2-16 스코프, static, const, volatile
+
+| 키워드 | 붙는 곳 | 의미 |
+|---|---|---|
+| `static` | 지역 변수 | 함수가 끝나도 값 유지, 초기화는 한 번 |
+| `static` | 전역 변수, 함수 | 이 `.c` 파일 안에서만 보임 (모듈 내부용) |
+| `const` | 변수 | 바꿀 수 없음, 실수로 덮어쓰는 것을 컴파일러가 막음 |
+| `volatile` | 변수 | 컴파일러가 모르게 바뀔 수 있음, 매번 메모리에서 읽고 씀 |
+
+`volatile` 은 ISR(인터럽트 서비스 루틴)과 메인 루프가 공유하는 변수, 하드웨어 레지스터에 필요합니다. 이것이 없으면 최적화된 컴파일러는 루프 안에서 값을 한 번만 읽고 다시 읽지 않아 플래그 변화를 놓칩니다.
+
+`volatile` 은 원자성을 보장하지 않습니다. 8비트 AVR이 `uint32_t` 를 읽는 데는 명령이 여러 개 필요하고, 그 사이에 ISR이 값을 바꾸면 반쯤 바뀐 값을 읽습니다. 그래서 여러 바이트 공유 변수는 인터럽트를 잠깐 막고(`cli()`) 복사합니다. 예제 6번은 이 상황을 바이트 단위 갱신으로 흉내 낸 것입니다.
+
+<!-- include: part02_c/16_volatile_static_const.c -->
+
+실행 결과:
+
+```
+== 1. block scope and shadowing ==
+inner v = 2
+outer v = 1
+
+== 2. static local vs auto local ==
+call 1: static=1 auto=1
+call 2: static=2 auto=1
+call 3: static=3 auto=1
+led: 0 1 0 1
+led in order: 1 0 1 0
+
+== 3. static global (file scope) ==
+g_module_counter = 3
+
+== 4. const ==
+LOW_BATT_MV = 6400
+sin(30 deg) x1000 = 500
+*p1=2 x=5 *p3=2
+
+== 5. volatile flag between ISR and main (simulated) ==
+millis= 5 -> control_step #1
+millis=10 -> control_step #2
+millis=15 -> control_step #3
+millis=20 -> control_step #4
+
+== 6. why atomic access matters (simulated torn read) ==
+expected 0x00000100, ISR saw 0x00000000 in the middle, final 0x00000100
+```
+
+예제 2번의 `led: 0 1 0 1` 은 gcc가 함수 인자를 오른쪽부터 평가했기 때문에 나온 결과입니다. 인자 평가 순서는 C 표준이 정하지 않으므로 컴파일러에 따라 다를 수 있으며, 바로 아래 줄처럼 한 번에 하나씩 호출하는 것이 올바른 방법입니다.
+
+자주 하는 실수:
+
+- ISR과 공유하는 변수에 `volatile` 을 빠뜨려 최적화 빌드(`-Os`)에서만 동작이 멈추는 경우.
+- `volatile` 이면 여러 바이트 변수도 안전하다고 생각하는 경우.
+- 헤더 파일에 `static` 변수를 정의해 파일마다 별개의 복사본이 생기는 경우.
+- 지역 변수 이름을 전역과 같게 지어 가리는 경우 (shadowing).
+
+연습 문제 힌트:
+
+1. `static` 전역도 같은 동작을 하지만 그 파일의 다른 함수가 모두 바꿀 수 있습니다. `static` 지역은 그 함수만 접근하므로 더 안전합니다.
+2. (가)와 (다)입니다. (나)는 메인에서만 쓰고, (라)는 바뀌지 않습니다.
+3. `uint8_t` 는 명령 하나(`lds`)로 읽히므로 중간에 끼어들 틈이 없습니다. `uint32_t` 는 명령 네 개로 나눠 읽으므로 그 사이에 ISR이 실행될 수 있습니다.
+
