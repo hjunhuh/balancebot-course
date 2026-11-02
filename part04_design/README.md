@@ -263,3 +263,17 @@ GitLab 의 "Fork" 는 남의 저장소를 내 계정으로 복사하는 기능�
 - [ ] config.h 기본값 변경 여부와 이유:
 ```
 
+## 4-11 추적성 매트릭스
+
+요구사항이 어디서 구현되고 어디서 검증되는지 한 표로 연결합니다. 면접에서 "요구사항이 빠짐없이 테스트되었는지 어떻게 아나요?"에 대한 답이 이 표입니다.
+
+| CR | SYS | SWR | 모듈 | 테스트 |
+|---|---|---|---|---|
+| CR-01 | SYS-01, 02 | SWR-01~04 | balance, kalman, pid | test_pid_kalman, sim_balance, TC-11 |
+| CR-02 | SYS-03, 04 | SWR-05 | protocol, cmd | test_protocol, TC-09, TC-12 |
+| CR-03 | SYS-05 | SWR-05~07 | params, bsw_eeprom | test_params, TC-07 |
+| CR-04 | SYS-06, 09 | SWR-09, 10 | balance, bsw_i2c, main | sim_balance (넘어짐), TC-08, TC-13 |
+| CR-05 | SYS-07 | SWR-08 | battery, balance | TC-10 |
+| CR-06 | SYS-08 | | main (LED) | TC-01, TC-13 |
+
+CSV 원본: `part04_design/traceability.csv`
