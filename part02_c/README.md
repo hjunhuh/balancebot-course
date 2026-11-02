@@ -583,3 +583,62 @@ tiny="#A,-152" wanted=10 (truncated: yes)
 2. `"P,1200,,80"` 은 두 번째 숫자에서 숫자가 없어 실패, `"P,1200,50,80,7"` 은 세 번째 숫자 뒤가 `'\0'` 이 아니어서 형식 오류가 납니다.
 3. 음수면 부호를 기억하고 양수로 바꾼 뒤 `n % 10 + '0'` 을 배열에 쌓고, 마지막에 배열을 뒤집고 `'\0'` 을 붙입니다.
 
+## 2-10 포인터 기초
+
+포인터는 주소를 담는 변수입니다. `&x` 는 x의 주소, `*p` 는 p가 가리키는 곳의 값입니다.
+
+```
+int16_t speed = 120;
+int16_t *p = &speed;   // p 에는 speed 의 주소
+*p = 200;              // speed 가 200 이 됨
+```
+
+함수가 원본을 바꾸거나 결과를 여러 개 돌려줘야 할 때 포인터 매개변수를 씁니다. `const int16_t *p` 는 "가리키는 값을 바꾸지 않겠다" 는 약속입니다. AVR의 `PORTB` 도 사실은 `(*(volatile uint8_t *)0x25)` 라는 포인터 역참조 매크로입니다.
+
+<!-- include: part02_c/10_pointers.c -->
+
+실행 결과 (포인터 크기는 PC에서 8바이트, AVR에서 2바이트):
+
+```
+== 1. address and dereference ==
+speed       = 120
+*ptr        = 120 (value at the address)
+ptr == &speed ? yes
+sizeof(ptr) = 8 bytes on this PC (2 bytes on AVR)
+after *ptr = 200 -> speed = 200
+
+== 2. swap through pointers ==
+before: left=100 right=-50
+after : left=-50 right=100
+
+== 3. multiple outputs ==
+7820 mV = 7.820 V
+divide by zero rejected
+
+== 4. NULL and const ==
+trim: -35
+none: (null)
+
+== 5. pointer to pointer (just a glance) ==
+left=77
+
+== 6. registers are memory addresses ==
+fake_io[0x25] = 0x05
+
+== 7. dangling pointer (concept) ==
+never return the address of a local variable
+```
+
+자주 하는 실수:
+
+- 초기화하지 않은 포인터를 역참조하는 경우.
+- `NULL` 검사 없이 매개변수 포인터를 쓰는 경우.
+- 함수의 지역 변수 주소를 반환하는 경우 (댕글링 포인터).
+- `int16_t* a, b;` 에서 b도 포인터라고 생각하는 경우. `*` 는 a에만 붙습니다.
+
+연습 문제 힌트:
+
+1. `if (*v > 255) *v = 255; else if (*v < -255) *v = -255;`
+2. 첫 요소로 `*mn`, `*mx` 를 초기화한 뒤 나머지를 비교합니다. `n <= 0` 이면 아무것도 하지 않도록 검사합니다.
+3. `#define FAKE_DDRB (*(volatile uint8_t *)&fake_io[0x24])` 후 `FAKE_DDRB |= (1U << 2);` 결과는 0x04입니다.
+
