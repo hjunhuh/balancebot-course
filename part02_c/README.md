@@ -320,3 +320,53 @@ status & 0x04 == 0x04   -> 0 (wrong)
 2. `PORTB ^= (uint8_t)(BIT(PB0) | BIT(PB1));`
 3. 2의 거듭제곱은 1 비트가 하나뿐입니다 (`0b1000`). 1을 빼면 그 아래가 모두 1이 되어 (`0b0111`) AND 결과가 0이 됩니다.
 
+## 2-05 조건문 if와 switch
+
+`if, else if, else` 는 위에서부터 차례로 검사해 처음 참인 블록 하나만 실행합니다. 범위를 나누는 판단에서는 조건의 순서가 결과를 바꿉니다.
+
+`switch` 는 정수 값(문자 포함) 하나로 여러 갈래를 나눌 때 씁니다. 블루투스 명령 문자 `'D'`, `'P'`, `'S'` 처리가 대표적입니다. `break` 가 없으면 다음 `case` 로 계속 내려가며 (fall through), 의도한 경우에는 `/* fall through */` 주석을 남깁니다.
+
+<!-- include: part02_c/05_if_switch.c -->
+
+실행 결과:
+
+```
+== 1. if / else if / else ==
+8350 mV -> FULL
+7600 mV -> GOOD
+7000 mV -> LOW
+6500 mV -> CRITICAL
+
+== 2. nested condition: is robot fallen? ==
+angle -4200 -> WARNING (close to falling)
+
+== 3. switch on command character ==
+'D' -> joystick
+'P' -> PID gains
+'S' -> save to EEPROM
+'s' -> save to EEPROM
+'G' -> get parameters
+'X' -> unknown command (#E,4)
+
+== 4. fall through ==
+n=1 : one two three
+n=2 : two three
+n=3 : three
+n=4 : other
+
+== 5. = vs == ==
+mode is not 1 (mode=0)
+```
+
+자주 하는 실수:
+
+- `if (mode = 1)` 처럼 비교 대신 대입을 쓰는 경우. 항상 참이 되며, `-Wall` 이 경고합니다.
+- `break` 를 빠뜨려 의도하지 않은 fall through가 생기는 경우.
+- 중괄호 없이 `if` 아래에 두 문장을 쓰고 둘 다 조건에 걸린다고 생각하는 경우. 한 줄이라도 중괄호를 쓰는 습관이 안전합니다.
+
+연습 문제 힌트:
+
+1. `mv >= 6800` 이 먼저 참이 되므로 8350 mV도 "LOW" 가 됩니다. 범위 판단은 큰 값부터 (또는 작은 값부터) 일관되게 검사합니다.
+2. `case 'V': printf(...); break;` 를 `default` 앞에 추가합니다.
+3. `return (iabs(angle) > 4500) ? 4 : 3;`
+
