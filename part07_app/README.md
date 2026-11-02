@@ -128,3 +128,28 @@ Android Studio 왼쪽 위 보기 방식을 Android 에서 **Project** 로 바꾸
 
 이 폴더의 Gradle 파일(`build.gradle`, `app/build.gradle` 등)은 "이 앱에 필요한 설정이 무엇인가"를 보여 주는 참고본입니다. 템플릿 Gradle 의 `namespace`, `applicationId` 가 `com.example.balancebot` 이고, `minSdk` 23, `compileSdk` 34 이상이며, 의존성에 appcompat 과 material 이 있는지만 비교해서 확인하면 됩니다.
 
+## 7-03 Android 프로젝트 구조
+
+Android 앱은 다음 다섯 가지 요소로 이루어집니다.
+
+| 요소 | 이 프로젝트의 파일 | 역할 |
+|---|---|---|
+| Activity | `MainActivity.java` | 화면 하나를 담당하는 클래스. `onCreate()` 에서 레이아웃을 붙이고 버튼 동작을 연결합니다 |
+| 레이아웃 XML | `res/layout/activity_main.xml` | 화면에 어떤 위젯을 어떤 순서로 놓을지 정의합니다. 각 위젯의 `android:id` 로 Java 에서 찾습니다 |
+| 리소스 | `res/values/strings.xml`, `themes.xml` | 문자열, 색, 스타일을 코드 밖에 둡니다. 빌드하면 `R.string.xxx`, `R.style.xxx` 같은 정수 상수가 생깁니다 |
+| 매니페스트 | `AndroidManifest.xml` | 앱 이름, 아이콘, 테마, 권한, 첫 화면(LAUNCHER Activity)을 시스템에 알립니다 |
+| Gradle | `build.gradle`, `settings.gradle` 등 | 컴파일 SDK, 최소 SDK, 라이브러리 의존성, 빌드 방법을 정합니다 |
+
+레이아웃과 Java 코드는 `R` 클래스로 이어집니다. 레이아웃에 `android:id="@+id/btnConnect"` 라고 쓰면 빌드할 때 `R.id.btnConnect` 상수가 만들어지고, Java 에서 `findViewById(R.id.btnConnect)` 로 그 버튼 객체를 얻습니다. id 철자가 하나라도 다르면 컴파일 오류가 나므로, 레이아웃을 고친 뒤에는 Java 쪽 id 도 같이 확인합니다.
+
+이 앱의 Java 클래스 관계는 다음과 같습니다.
+
+| 클래스 | 아는 것 | 모르는 것 |
+|---|---|---|
+| `Protocol` | 프레임 문자열, 체크섬, 숫자 변환 | Android, 블루투스, 화면 |
+| `BluetoothService` | 소켓, 스레드, 바이트를 줄로 모으기 | 화면 위젯 |
+| `JoystickView` | 터치 좌표, 그리기 | 블루투스, 프로토콜 형식 |
+| `MainActivity` | 위 셋을 연결하고 화면을 갱신 | 소켓 세부 동작 |
+
+`Protocol` 을 Android 와 분리해 둔 덕분에 휴대폰 없이 PC 에서 javac 로 테스트할 수 있습니다 (7-08).
+
