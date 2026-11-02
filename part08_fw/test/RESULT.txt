@@ -1,0 +1,17 @@
+./test_protocol && ./test_params && ./test_pid_kalman && ./sim_balance
+  built: $D,-35,100*5E
+  ack:   #O,S*30
+  #K:    #K,3000,150,90,0,1000*68
+[protocol] pass 30, fail 0
+[params] pass 6, fail 0
+  kalman static: angle 10.414 deg, bias 0.031 deg/s
+  kalman ramp: max error 0.540 deg (acc noise +-5 deg)
+  kalman fake-equilibrium: truth 5.00, estimate after 1 s 4.841 deg
+[pid_kalman] pass 7, fail 0
+gains: Kp 40.00  Ki 100.00  Kd 1.50  Ks 10.00
+  [제자리 10s] OK    max|theta| 0.18 deg, max|x| 0.22 m, 마지막 2s 평균속도 -0.028 m/s
+  [충격 60dps] OK    max|theta| 1.30 deg, max|x| 0.15 m, 마지막 2s 평균속도 -0.028 m/s
+  [전진 y=60] OK    max|theta| 2.42 deg, max|x| 1.23 m, 마지막 2s 평균속도 +0.239 m/s
+  [큰 충격 400dps] t=1.20s 넘어짐 판정 (theta 46.0 deg)
+  [큰 충격 400dps] OK   넘어짐을 감지하고 모터 정지
+result: PASS
