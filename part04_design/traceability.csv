@@ -1,0 +1,7 @@
+customer_req,system_req,sw_req,modules,tests
+CR-01,SYS-01;SYS-02,SWR-01;SWR-02;SWR-03;SWR-04,balance;kalman;pid,test_pid_kalman;sim_balance;TC-11
+CR-02,SYS-03;SYS-04,SWR-05,protocol;cmd,test_protocol;TC-09;TC-12
+CR-03,SYS-05,SWR-05;SWR-06;SWR-07,params;bsw_eeprom,test_params;TC-07
+CR-04,SYS-06;SYS-09,SWR-09;SWR-10,balance;bsw_i2c;main,sim_balance;TC-08;TC-13
+CR-05,SYS-07,SWR-08,battery;balance,TC-10
+CR-06,SYS-08,-,main,TC-01;TC-13
