@@ -642,3 +642,51 @@ never return the address of a local variable
 2. 첫 요소로 `*mn`, `*mx` 를 초기화한 뒤 나머지를 비교합니다. `n <= 0` 이면 아무것도 하지 않도록 검사합니다.
 3. `#define FAKE_DDRB (*(volatile uint8_t *)&fake_io[0x24])` 후 `FAKE_DDRB |= (1U << 2);` 결과는 0x04입니다.
 
+## 2-11 포인터와 배열, 버퍼 처리
+
+배열 이름은 대부분의 식에서 첫 요소의 주소로 바뀝니다. 그래서 `a[i]` 는 `*(a + i)` 와 같습니다. 포인터에 1을 더하면 주소가 1바이트가 아니라 `sizeof(요소)` 만큼 증가합니다.
+
+함수에 배열을 넘기면 포인터만 넘어가므로 함수 안에서 `sizeof` 로 길이를 알 수 없습니다. 길이를 항상 함께 넘깁니다. 예제 5번에서는 UART로 받은 바이트 버퍼를 포인터로 훑으며 `'\n'` 단위로 줄을 잘라 내고, SPEC 4장의 XOR 체크섬을 검사합니다. 두 번째 줄은 일부러 틀린 체크섬을 넣었습니다.
+
+<!-- include: part02_c/11_pointer_array.c -->
+
+실행 결과 (`sizeof(a)` 의 8은 PC의 포인터 크기입니다):
+
+```
+== 1. array name decays to pointer ==
+raw[2] = 30, *(p + 2) = 30, p[2] = 30
+
+== 2. pointer arithmetic step = sizeof(element) ==
+uint8_t : (p+1) - p = 1 bytes
+int16_t : (p+1) - p = 2 bytes
+uint32_t: (p+1) - p = 4 bytes
+element distance b16+3 - b16 = 3 elements
+
+== 3. array as function parameter ==
+sizeof(raw) in main = 10
+  inside sum16: sizeof(a) = 8 (pointer!)
+sum = 150
+scaled: 30 60 90 120 150 
+
+== 4. sub-array by pointer offset ==
+  inside sum16: sizeof(a) = 8 (pointer!)
+sum of raw[2..4] = 360
+
+== 5. byte buffer: split lines and verify checksum ==
+"$G*47" -> calc=47 given=47 OK
+"$M,1*51" -> calc=50 given=51 CHECKSUM ERROR (#E,1)
+left in buffer (no newline yet): "$D,10" (5 bytes)
+```
+
+자주 하는 실수:
+
+- 함수 안에서 `sizeof(배열 매개변수)` 로 길이를 구하는 경우.
+- 끝 포인터(`p + n`)를 역참조하는 경우. 끝 포인터는 비교용으로만 씁니다.
+- 서로 다른 배열을 가리키는 포인터끼리 빼거나 비교하는 경우.
+
+연습 문제 힌트:
+
+1. `const int16_t *end = a + n; while (a < end) s += *a++;`
+2. `rx` 의 `$M,1*51` 을 `$M,1*50` 으로 바꿉니다.
+3. `for (const uint8_t *p = buf; p < buf + n; p++) if (*p == c) return p; return NULL;`
+
