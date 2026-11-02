@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Android 11(API 30) 이하: 설치 시 자동 허용되는 예전 블루투스 권한 -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+
+    <!-- Android 12(API 31) 이상: 런타임에 요청하는 "근처 기기" 권한 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- 검색 결과로 위치를 추정하지 않으므로 neverForLocation 을 선언해 위치 권한 없이 씁니다 -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+
+    <!-- 블루투스 클래식이 없는 기기에는 설치되지 않게 합니다 -->
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/stat_sys_data_bluetooth"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BalanceBot">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
