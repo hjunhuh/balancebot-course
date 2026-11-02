@@ -160,3 +160,9 @@ CSV: `part05_hw/BOM.csv`
 6. 배선 순서: 전원(VBAT, 굵게) > 5V > 신호. 신호는 앞면(F.Cu), 뒷면은 GND 구리 영역으로 채웁니다 (Add Filled Zone, 넷 GND, 레이어 B.Cu, B 키로 채우기).
 7. 실크: 각 커넥터 핀 이름, J5 의 + 표시, LED 와 버튼 기능, 보드 이름 `BALANCEBOT SHIELD v1.0`, 날짜.
 
+## 5-08 DRC 와 3D 확인
+
+1. Board Setup > Design Rules > Constraints 에 5-04 표의 최소값을 입력합니다. Net Classes 에 `POWER` 클래스(폭 2.0 mm)를 만들고 VBAT, VBAT_IN 을 할당합니다.
+2. Inspect > Design Rules Checker 실행. 미배선(Unconnected) 0, 오류 0 이 될 때까지 고칩니다.
+3. 3D Viewer 에서 단자대 방향(전선 들어가는 쪽이 보드 바깥), 소켓 높이, 모듈끼리 겹침을 확인합니다.
+
