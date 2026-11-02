@@ -98,3 +98,9 @@ PWM 에서 놓치기 쉬운 점: Fast PWM 은 OCR 이 0 이어도 매 주기 한
 
 <!-- include: part08_fw/src/bsw/bsw_uart.c -->
 
+## 8-07 BSW: I2C (TWI) 와 타임아웃
+
+센서 선이 흔들려 빠지면 TWINT 를 기다리는 루프가 영원히 끝나지 않을 수 있습니다. 모든 대기에 횟수 제한을 두고, 실패하면 STOP 을 보내고 TWI 를 껐다 켭니다.
+
+<!-- include: part08_fw/src/bsw/bsw_i2c.c -->
+
