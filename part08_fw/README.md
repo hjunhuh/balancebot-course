@@ -112,3 +112,19 @@ EEPROM 한 바이트 쓰기는 약 3.3 ms 입니다. 파라미터 22 바이트�
 
 <!-- include: part08_fw/src/bsw/bsw_eeprom.c -->
 
+## 8-09 드라이버: MPU6050
+
+| 레지스터 | 값 | 이유 |
+|---|---|---|
+| PWR_MGMT_1 (0x6B) | 0x01 | 슬립 해제, 자이로 PLL 클럭 |
+| SMPLRT_DIV (0x19) | 4 | 200 Hz, 제어 주기와 맞춤 |
+| CONFIG (0x1A) | 3 | 약 44 Hz 저역통과, 모터 진동 억제 |
+| GYRO_CONFIG (0x1B) | 0x00 | ±250 deg/s, 131 LSB/(deg/s) |
+| ACCEL_CONFIG (0x1C) | 0x00 | ±2 g, 16384 LSB/g |
+
+<!-- include: part08_fw/src/drv/mpu6050.c -->
+
+### 각도와 축의 부호
+
+SPEC 장착 기준은 X 축이 로봇 앞, Z 축이 위, Y 축이 왼쪽입니다. 로봇이 앞으로 θ 만큼 기울면 가속도계는 `ax = -sin θ`, `az = cos θ` (단위 g) 를 읽습니다. 그래서 `θ = atan2(-ax, az)` 이고, 앞으로 숙이는 회전은 Y 축 기준 양의 회전이라 자이로 `gy` 가 + 가 됩니다. 장착 방향이 다르면 `IMU_ANGLE_SIGN` 을 -1 로 바꾸거나 `main.c` 의 `imu_to_input` 에서 축을 바꿉니다.
+
