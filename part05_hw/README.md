@@ -43,3 +43,20 @@
    - Symbol / Footprint Editor: 라이브러리에 없는 부품 직접 만들기
 4. 자주 쓰는 단축키 (회로도): A 심볼 추가, W 배선, L 라벨, P 전원 심볼, M 이동, R 회전, E 속성. (PCB): X 배선, V 비아, D 드래그, F 앞뒤 뒤집기.
 
+## 5-03 KiCad 빠르게 익히기: LED 회로
+
+본 설계 전에 가장 작은 회로로 전 과정을 한 번 돌아 봅니다.
+
+1. Schematic Editor 열기, A 키 > `Device:R` 배치, 다시 A > `Device:LED`, A > `Connector:Conn_01x02` (전원 입력).
+2. P 키 > `+5V`, `GND` 전원 심볼 배치.
+3. W 키로 +5V > R > LED 애노드, LED 캐소드 > GND, 커넥터 1번 > +5V, 2번 > GND 연결.
+4. E 키로 R 값을 `330`, LED 값을 `RED` 로 입력.
+5. Tools > Annotate Schematic (R1, D1, J1 번호 자동 부여).
+6. Inspect > Electrical Rules Checker 실행. 전원 핀이 구동되지 않았다는 경고가 나오면 `PWR_FLAG` 심볼을 +5V 와 GND 에 붙입니다.
+7. Tools > Assign Footprints: R 은 `Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal`, LED 는 `LED_THT:LED_D5.0mm`, 커넥터는 `Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical`.
+8. PCB Editor 열기 > Tools > Update PCB from Schematic (F8). 부품이 가는 선(ratsnest)으로 연결된 채 나타납니다.
+9. Edge.Cuts 레이어 선택 > 사각형으로 30 x 20 mm 외곽 그리기.
+10. 부품 배치 후 X 키로 배선, 폭 0.5 mm.
+11. Inspect > Design Rules Checker 실행, 오류 0 확인.
+12. View > 3D Viewer 로 확인.
+
