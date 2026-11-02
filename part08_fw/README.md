@@ -271,3 +271,28 @@ SPEC 4장의 프레임을 바이트 단위로 조립합니다. 시작 문자를 
 
 실제 보드에서 확인하려면 `task_control` 앞뒤로 LED 핀을 HIGH/LOW 로 바꾸고 오실로스코프나 로직 분석기로 펄스 폭을 봅니다.
 
+## 8-18 PC 단위 테스트
+
+```
+cd part08_fw && make test
+```
+
+실행 결과 (이 저장소에서 실제 실행):
+
+```
+  built: $D,-35,100*5E
+  ack:   #O,S*30
+  #K:    #K,3000,150,90,0,500*5C
+[protocol] pass 34, fail 0
+[params] pass 6, fail 0
+  kalman static: angle 10.414 deg, bias 0.031 deg/s
+  kalman ramp: max error 0.540 deg (acc noise +-5 deg)
+  kalman fake-equilibrium: truth 5.00, estimate after 1 s 4.841 deg
+[pid_kalman] pass 7, fail 0
+result: PASS
+```
+
+<!-- include: part08_fw/test/test_protocol.c -->
+
+<!-- include: part08_fw/test/test_pid_kalman.c -->
+
